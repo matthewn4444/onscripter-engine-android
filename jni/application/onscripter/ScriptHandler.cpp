@@ -37,11 +37,14 @@ ScriptHandler::ScriptHandler()
     log_info[LABEL_LOG].filename = "NScrllog.dat";
     log_info[FILE_LOG].filename  = "NScrflog.dat";
     clickstr_list = NULL;
+    decoder = NULL;
     
     string_buffer       = new char[STRING_BUFFER_LENGTH];
     str_string_buffer   = new char[STRING_BUFFER_LENGTH];
     saved_string_buffer = new char[STRING_BUFFER_LENGTH];
 #ifdef ANDROID
+    root_writable = NULL;
+    menuText = NULL;
     setSystemLanguage("en");
 #endif
 
@@ -77,6 +80,7 @@ ScriptHandler::~ScriptHandler()
 #ifdef ANDROID
     if (root_writable) {
         delete[] root_writable;
+        root_writable = NULL;
     }
 
     if (menuText) {
@@ -1017,10 +1021,28 @@ void ScriptHandler::addStrAlias( const char *str1, const char *str2 )
     last_str_alias = last_str_alias->next;
 }
 
-void ScriptHandler::errorAndExit( const char *str )
+void ScriptHandler::errorAndExit()
 {
-    logee( stderr, string_buffer, " **** Script error, %s ***", str );
+#ifdef ANDROID
+    throw ScriptException();
+#else
     exit(-1);
+#endif
+}
+
+void ScriptHandler::errorAndExit( const char* fmt, ... )
+{
+    va_list ap;
+    char buf[1024];
+    va_start(ap, fmt);
+    vsnprintf(buf, 1024, fmt, ap);
+#ifdef ANDROID
+    throw ScriptException(buf);
+#else
+    loge( stderr, " **** Script error, %s ***", buf );
+    exit(-1);
+#endif
+    va_end(ap);
 }
 
 void ScriptHandler::addStringBuffer( char ch )
@@ -1295,8 +1317,6 @@ void ScriptHandler::readConfiguration()
     }
 }
 
-#include "backtrace.h"
-
 int ScriptHandler::labelScript()
 {
     int label_counter = -1;
@@ -1359,8 +1379,7 @@ int ScriptHandler::findLabel( const char *label )
 #ifdef ENABLE_KOREAN
     if (!strcmp(label, KOREAN_LABEL_END)
         || !strcmp(label, KOREAN_LABEL_END2)) {
-        exit(-1);
-        return -1;
+        errorAndExit();
     }
     // Specific hack for broken Korean translated game 'Princess Frontier'
     if (!strcmp(label, "l_badend")) {
@@ -1546,8 +1565,7 @@ void ScriptHandler::parseStr( char **buf )
                 }
             }
 #endif
-            loge(stderr, "can't find str alias for %s...\n", alias_buf );
-            exit(-1);
+            errorAndExit("can't find str alias for %s...\n", alias_buf );
         }
         current_variable.type |= VAR_CONST;
     }

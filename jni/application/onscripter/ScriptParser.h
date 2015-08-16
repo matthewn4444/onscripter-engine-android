@@ -59,9 +59,6 @@
 typedef unsigned char uchar3[3];
 
 class ScriptParser
-#ifdef ANDROID
-    : public IErrorCallback
-#endif
 {
 public:
     ScriptParser();
@@ -170,23 +167,6 @@ public:
     int arcCommand();
     int addkinsokuCommand();
     int addCommand();
-    
-#ifdef ANDROID
-    void logErrorWithExtra(const char* extra, const char* fmt, ...) {
-        va_list ap;
-        char buf[1024];
-        va_start(ap, fmt);
-        vsnprintf(buf, 1024, fmt, ap);
-        va_end(ap);
-        onErrorCallback(buf, extra);
-    }
-    virtual void onErrorCallback(const char* message, const char* extra) {
-        if (extra)
-            __android_log_print(ANDROID_LOG_ERROR, ONSCRIPTER_LOG_TAG, "%s [%s]", message, extra);
-        else
-            __android_log_print(ANDROID_LOG_ERROR, ONSCRIPTER_LOG_TAG, "%s", message);
-    }
-#endif
 
 protected:
     struct UserFuncLUT{
@@ -507,7 +487,8 @@ protected:
     unsigned char convHexToDec( char ch );
     void readColor( uchar3 *color, const char *buf );
     
-    void errorAndExit( const char *str, const char *reason=NULL );
+    void errorAndExit();
+    void errorAndExit( const char *fmt, ... );
 
     void allocFileIOBuf();
     int saveFileIOBuf( const char *filename, int offset=0, const char *savestr=NULL );

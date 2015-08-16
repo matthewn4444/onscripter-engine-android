@@ -24,7 +24,7 @@
 #include "ONScripter.h"
 #include "version.h"
 
-ONScripter ons;
+ONScripter* ons = NULL;
 
 #if defined(IOS)
 #import <Foundation/NSArray.h>
@@ -47,8 +47,10 @@ int psp_power_resume_number = 0;
 
 int exit_callback(int arg1, int arg2, void *common)
 {
-    ons.endCommand();
-    sceKernelExitGame();
+    if (ons) {
+        ons.endCommand();
+        sceKernelExitGame();
+    }
     return 0;
 }
 
@@ -110,33 +112,24 @@ void optionVersion()
 #ifdef ANDROID
 extern "C"
 {
-#include <jni.h>
-
-#ifndef SDL_JAVA_PACKAGE_PATH
-#error You have to define SDL_JAVA_PACKAGE_PATH to your package path with dots replaced with underscores, for example "com_example_SanAngeles"
-#endif
-#define JAVA_EXPORT_NAME2(name,package) Java_##package##_##name
-#define JAVA_EXPORT_NAME1(name,package) JAVA_EXPORT_NAME2(name,package)
-#define JAVA_EXPORT_NAME(name) JAVA_EXPORT_NAME1(name,SDL_JAVA_PACKAGE_PATH)
-
 JNIEXPORT jint JNICALL 
 JAVA_EXPORT_NAME(ONScripterView_nativeGetWidth) ( JNIEnv*  env, jobject thiz )
 {
-	return ons.getWidth();
+	return ons ? ons->getWidth() : 0;
 }
 
 JNIEXPORT jint JNICALL 
 JAVA_EXPORT_NAME(ONScripterView_nativeGetHeight) ( JNIEnv*  env, jobject thiz )
 {
-	return ons.getHeight();
+	return ons ? ons->getHeight() : 0;
 }
 
 JNIEXPORT void JNICALL
 JAVA_EXPORT_NAME(ONScripterView_nativeSetSentenceFontScale) ( JNIEnv*  env, jobject thiz, double scale )
 {
-	if (ONScripter::Sentence_font_scale != scale) {
+	if (ons && ONScripter::Sentence_font_scale != scale) {
 		ONScripter::Sentence_font_scale = scale;
-		ons.invalidateSentenceFontSize();
+		ons->invalidateSentenceFontSize();
 	}
 }
 
@@ -147,7 +140,7 @@ JNIEXPORT void JNICALL JAVA_EXPORT_NAME(DemoGLSurfaceView_nativeInitJavaCallback
 
 JNIEXPORT jint JNICALL JAVA_EXPORT_NAME(ONScripterView_nativeGetDialogFontSize) (JNIEnv * jniEnv, jobject thiz)
 {
-    return ons.getSentenceFontSize();
+    return ons ? ons->getSentenceFontSize() : 0;
 }
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
@@ -181,11 +174,15 @@ extern "C" int main( int argc, char **argv )
 int main( int argc, char **argv )
 #endif
 {
+    if (!ons) {
+        ons = new ONScripter();
+    }
+
     printf("ONScripter version %s(%d.%02d)\n", ONS_VERSION, NSC_VERSION/100, NSC_VERSION%100 );
 
 #if defined(PSP)
-    ons.disableRescale();
-    ons.enableButtonShortCut();
+    ons->disableRescale();
+    ons->enableButtonShortCut();
     SetupCallbacks();
 #elif defined(WINCE)
     char currentDir[256];
@@ -197,11 +194,11 @@ int main( int argc, char **argv )
             break;
     }
     cptr[i] = '\0';
-    ons.setArchivePath(currentDir);
-    ons.disableRescale();
-    ons.enableButtonShortCut();
+    ons->setArchivePath(currentDir);
+    ons->disableRescale();
+    ons->enableButtonShortCut();
 #elif defined(ANDROID) 
-    ons.enableButtonShortCut();
+    ons->enableButtonShortCut();
 #endif
 
 #if defined(IOS)
@@ -214,13 +211,13 @@ int main( int argc, char **argv )
     NSString* cpath = [[cpaths objectAtIndex:0] stringByAppendingPathComponent:@"ONS"];
     char filename[256];
     strcpy(filename, [cpath UTF8String]);
-    ons.setArchivePath(filename);
+    ons->setArchivePath(filename);
 
     // output files are stored under /Documents
     NSArray* dpaths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSString* dpath = [[dpaths objectAtIndex:0] stringByAppendingPathComponent:@"ONS"];
     strcpy(filename, [dpath UTF8String]);
-    ons.setSaveDir(filename);
+    ons->setSaveDir(filename);
 
 #if defined(ZIP_URL)
     if ([[[DataDownloader alloc] init] download]) exit(-1);
@@ -230,16 +227,16 @@ int main( int argc, char **argv )
     // scripts and archives are stored under /Library/Caches
     cpath = [[[ScriptSelector alloc] initWithStyle:UITableViewStylePlain] select];
     strcpy(filename, [cpath UTF8String]);
-    ons.setArchivePath(filename);
+    ons->setArchivePath(filename);
 
     // output files are stored under /Documents
     dpath = [[dpaths objectAtIndex:0] stringByAppendingPathComponent:[cpath lastPathComponent]];
     strcpy(filename, [dpath UTF8String]);
-    ons.setSaveDir(filename);
+    ons->setSaveDir(filename);
 #endif
 
 #if defined(RENDER_FONT_OUTLINE)
-    ons.renderFontOutline();
+    ons->renderFontOutline();
 #endif
 #endif
 
@@ -255,78 +252,80 @@ int main( int argc, char **argv )
                 optionVersion();
             }
             else if ( !strcmp( argv[0]+1, "-cdaudio" ) ){
-                ons.enableCDAudio();
+                ons->enableCDAudio();
             }
             else if ( !strcmp( argv[0]+1, "-cdnumber" ) ){
                 argc--;
                 argv++;
-                ons.setCDNumber(atoi(argv[0]));
+                ons->setCDNumber(atoi(argv[0]));
             }
             else if ( !strcmp( argv[0]+1, "f" ) || !strcmp( argv[0]+1, "-font" ) ){
                 argc--;
                 argv++;
-                ons.setFontFile(argv[0]);
+                ons->setFontFile(argv[0]);
             }
             else if ( !strcmp( argv[0]+1, "-registry" ) ){
                 argc--;
                 argv++;
-                ons.setRegistryFile(argv[0]);
+                ons->setRegistryFile(argv[0]);
             }
             else if ( !strcmp( argv[0]+1, "-dll" ) ){
                 argc--;
                 argv++;
-                ons.setDLLFile(argv[0]);
+                ons->setDLLFile(argv[0]);
             }
             else if ( !strcmp( argv[0]+1, "r" ) || !strcmp( argv[0]+1, "-root" ) ){
                 argc--;
                 argv++;
-                ons.setArchivePath(argv[0]);
+                ons->setArchivePath(argv[0]);
             }
             else if ( !strcmp( argv[0]+1, "-fullscreen" ) ){
-                ons.setFullscreenMode();
+                ons->setFullscreenMode();
             }
             else if ( !strcmp( argv[0]+1, "-window" ) ){
-                ons.setWindowMode();
+                ons->setWindowMode();
             }
             else if ( !strcmp( argv[0]+1, "-force-button-shortcut" ) ){
-                ons.enableButtonShortCut();
+                ons->enableButtonShortCut();
             }
             else if ( !strcmp( argv[0]+1, "-enable-wheeldown-advance" ) ){
-                ons.enableWheelDownAdvance();
+                ons->enableWheelDownAdvance();
             }
             else if ( !strcmp( argv[0]+1, "-disable-rescale" ) ){
-                ons.disableRescale();
+                ons->disableRescale();
             }
             else if ( !strcmp( argv[0]+1, "-render-font-outline" ) ){
-                ons.renderFontOutline();
+                ons->renderFontOutline();
             }
             else if ( !strcmp( argv[0]+1, "-edit" ) ){
-                ons.enableEdit();
+                ons->enableEdit();
             }
             else if ( !strcmp( argv[0]+1, "-key-exe" ) ){
                 argc--;
                 argv++;
-                ons.setKeyEXE(argv[0]);
+                ons->setKeyEXE(argv[0]);
             }
 #if defined(ANDROID) 
             else if ( !strcmp( argv[0]+1, "-open-only" ) ){
                 argc--;
                 argv++;
-                if (ons.openScript()) exit(-1);
+                if (ons->openScript()) {
+                    __android_log_print(ANDROID_LOG_INFO, "ONScripter", "Was not able to open script");
+                }
                 return 0;
             }
             else if ( !strcmp( argv[0]+1, "l" ) || !strcmp( argv[0]+1, "-language" ) ){
                 argc--;
                 argv++;
-                ons.setMenuLanguage(argv[0]);
+                ons->setMenuLanguage(argv[0]);
             }
             else if ( !strcmp( argv[0]+1, "-save-path" )){
                 argc--;
                 argv++;
-                ons.setRootWritableDir(argv[0]);
+                ons->setRootWritableDir(argv[0]);
             }
             else if ( !strcmp( argv[0]+1, "-audio-hq" )){
-                ons.enableHQAudio();
+                ons->enableHQAudio();
             }
 #endif
             else{
@@ -343,9 +342,28 @@ int main( int argc, char **argv )
     // ----------------------------------------
     // Run ONScripter
 
-    if (ons.openScript()) exit(-1);
-    if (ons.init()) exit(-1);
-    ons.executeLabel();
-    
-    exit(0);
+#ifdef ANDROID
+    try {
+#endif
+    if (ons->openScript()) {
+        goto exit;
+    }
+    if (ons->init()) {
+        goto exit;
+    }
+    ons->executeLabel();
+#ifdef ANDROID
+    } catch (ScriptException& e) {
+        ons->sendException(e);
+    }
+#endif
+exit:
+    delete ons;
+    ons = NULL;
+
+#if defined(ANDROID)
+    // Call finish
+    JNIWrapper wrapper(ONScripter::JNI_VM);
+    wrapper.env->CallVoidMethod(ONScripter::JavaONScripter, ONScripter::JavaOnFinish);
+#endif
 }

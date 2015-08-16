@@ -1326,7 +1326,7 @@ int ONScripter::mpegplayCommand()
     bool click_flag = (script_h.readInt()==1)?true:false;
 
     stopBGM( false );
-    if (playMPEG( save_buf, click_flag )) endCommand();
+    if (playMPEG( save_buf, click_flag )) errorAndExit();
 
     repaintCommand();
     
@@ -1512,7 +1512,7 @@ int ONScripter::movieCommand()
         }
     }
     
-    if (playMPEG(filename, click_flag, loop_flag)) endCommand();
+    if (playMPEG(filename, click_flag, loop_flag)) errorAndExit();
 
     return RET_CONTINUE;
 }
@@ -2695,7 +2695,13 @@ int ONScripter::erasetextwindowCommand()
 int ONScripter::endCommand()
 {
     quit();
+#ifdef ANDROID
+    // This is the worst in coding practice but it gets the job done
+    // This will exit the game gracefully getting caught into SDL_main
+    throw ScriptException();
+#else
     exit(0);
+#endif
     return RET_CONTINUE; // dummy
 }
 
@@ -3647,7 +3653,7 @@ int ONScripter::aviCommand()
     bool click_flag = (script_h.readInt()==1)?true:false;
 
     stopBGM( false );
-    if (playAVI( save_buf, click_flag )) endCommand();
+    if (playAVI( save_buf, click_flag )) errorAndExit();
 
     // should be commented out
     //repaintCommand();

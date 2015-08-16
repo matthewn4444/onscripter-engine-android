@@ -27,7 +27,6 @@
 #include "ScriptParser.h"
 #include "DirtyRect.h"
 #include "ButtonLink.h"
-#include "backtrace.h"
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_ttf.h>
@@ -35,7 +34,7 @@
 
 #ifdef ANDROID
 #include <android/log.h>
-#include <jni.h>
+#include "jni_helper.h"
 #endif
 
 #define DEFAULT_VIDEO_SURFACE_FLAG (SDL_SWSURFACE)
@@ -96,14 +95,24 @@ public:
     static jmethodID JavaReceiveMessage;
     static jmethodID JavaSendException;
     static jmethodID JavaOnLoadFile;
+    static jmethodID JavaOnFinish;
     static jclass JavaONScripterClass;
 
     static void setJavaEnv(JNIEnv * jniEnv, jobject thiz) {
+        if (JavaONScripter) {
+            jniEnv->DeleteGlobalRef(JavaONScripter);
+            JavaONScripter = NULL;
+        }
+        if (JavaONScripterClass) {
+            jniEnv->DeleteGlobalRef(JavaONScripterClass);
+            JavaONScripterClass = NULL;
+        }
         JavaONScripter = jniEnv->NewGlobalRef(thiz);
         JavaONScripterClass = (jclass)jniEnv->NewGlobalRef(jniEnv->GetObjectClass(JavaONScripter));
         JavaPlayVideo = jniEnv->GetMethodID(JavaONScripterClass, "playVideo", "([CZZ)V");
         JavaReceiveMessage = jniEnv->GetStaticMethodID(JavaONScripterClass,"receiveMessageFromNDK", "(IZ)V");
         JavaOnLoadFile = jniEnv->GetMethodID(JavaONScripterClass,"onLoadFile", "(Ljava/lang/String;Ljava/lang/String;)V");
+        JavaOnFinish = jniEnv->GetMethodID(JavaONScripterClass,"onFinish", "()V");
         JavaSendException = jniEnv->GetMethodID(JavaONScripterClass,"receiveException",
             "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
     }
@@ -341,7 +350,7 @@ public:
     int allsphideCommand();
     int amspCommand();
 #ifdef ANDROID
-    virtual void onErrorCallback(const char*, const char*);
+    void sendException(ScriptException& exception);
 #endif
 
 private:
@@ -490,9 +499,8 @@ private:
             updateSentenceFontSizes();
 
             if ( sentence_font.openFont( font_file, screen_ratio1, screen_ratio2 ) == NULL ){
-                loge( stderr, "can't open font file: %s\n", font_file );
                 quit();
-                exit(-1);
+                errorAndExit( "can't open font file: %s\n", font_file );
             }
         }
     }

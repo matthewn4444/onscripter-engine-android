@@ -28,6 +28,7 @@ DECODER_OBJS = DirectReader$(OBJSUFFIX) \
 	kr2utf$(OBJSUFFIX) \
 	gbk2utf$(OBJSUFFIX) \
 	backtrace$(OBJSUFFIX) \
+	ScriptException$(OBJSUFFIX) \
 	ScriptDecoder$(OBJSUFFIX)
 
 SARDEC_OBJS  = sardec$(OBJSUFFIX) \

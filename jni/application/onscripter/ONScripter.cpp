@@ -49,6 +49,7 @@ jmethodID   ONScripter::JavaPlayVideo = NULL;
 jmethodID   ONScripter::JavaSendException = NULL;
 jmethodID   ONScripter::JavaReceiveMessage = NULL;
 jmethodID   ONScripter::JavaOnLoadFile = NULL;
+jmethodID   ONScripter::JavaOnFinish = NULL;
 jclass      ONScripter::JavaONScripterClass = NULL;
 
 const char* ONScripter::MESSAGE_SAVE_EXIST = NULL;
@@ -76,8 +77,7 @@ void ONScripter::initSDL()
     /* Initialize SDL */
 
     if ( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO ) < 0 ){
-        loge( stderr, "Couldn't initialize SDL: %s\n", SDL_GetError() );
-        exit(-1);
+        errorAndExit("Couldn't initialize SDL: %s\n", SDL_GetError());
     }
 
 #ifdef __OS2__
@@ -86,8 +86,7 @@ void ONScripter::initSDL()
 
 #ifdef USE_CDROM
     if( cdaudio_flag && SDL_InitSubSystem( SDL_INIT_CDROM ) < 0 ){
-        loge( stderr, "Couldn't initialize CD-ROM: %s\n", SDL_GetError() );
-        exit(-1);
+        errorAndExit( "Couldn't initialize CD-ROM: %s\n", SDL_GetError() );
     }
 #endif
 
@@ -103,8 +102,7 @@ void ONScripter::initSDL()
     /* ---------------------------------------- */
     /* Initialize SDL */
     if ( TTF_Init() < 0 ){
-        loge( stderr, "can't initialize SDL TTF\n");
-        exit(-1);
+        errorAndExit( "can't initialize SDL TTF\n");
     }
 
 #if defined(BPP16)
@@ -121,8 +119,7 @@ void ONScripter::initSDL()
     SDL_Rect **modes;
     modes = SDL_ListModes(NULL, SDL_FULLSCREEN);
     if (modes == (SDL_Rect **)0){
-        loge(stderr, "No Video mode available.\n");
-        exit(-1);
+        errorAndExit("No Video mode available.\n");
     }
     else if (modes == (SDL_Rect **)-1){
         // no restriction
@@ -204,9 +201,8 @@ void ONScripter::initSDL()
 
 #ifndef USE_SDL_RENDERER
     if ( screen_surface == NULL ) {
-        loge( stderr, "Couldn't set %dx%dx%d video mode: %s\n",
+        errorAndExit( "Couldn't set %dx%dx%d video mode: %s\n",
                  screen_width, screen_height, screen_bpp, SDL_GetError() );
-        exit(-1);
     }
 #endif
     logv("Display: %d x %d (%d bpp)\n", screen_width, screen_height, screen_bpp);
@@ -287,6 +283,7 @@ ONScripter::ONScripter()
     current_button_state.down_flag = false;
 
 #ifdef ANDROID
+    root_writable = NULL;
     audio_high_quality = false;
     setMenuLanguage("en");
 #endif
@@ -311,6 +308,12 @@ ONScripter::~ONScripter()
 
     delete[] sprite_info;
     delete[] sprite2_info;
+
+#if defined(USE_SDL_RENDERER)
+    if (window) SDL_DestroyWindow(window);
+#endif
+    Mix_CloseAudio();
+    SDL_Quit();
 }
 
 void ONScripter::enableCDAudio(){
@@ -1385,102 +1388,69 @@ void ONScripter::setInternalSkipMode(bool enabled) {
         skip_mode &= ~SKIP_NORMAL;
     }
 #ifdef ANDROID
-    JNIEnv * jniEnv = NULL;
-    JNI_VM->AttachCurrentThread(&jniEnv, NULL);
-
-    if (!jniEnv){
-        __android_log_print(ANDROID_LOG_ERROR, ONSCRIPTER_LOG_TAG, "ONScripter::setInternalSkipMode: Java VM AttachCurrentThread() failed");
-        return;
-    }
-
+    JNIWrapper wrapper(JNI_VM);
     jboolean jb = enabled ? JNI_TRUE : JNI_FALSE;
-    jniEnv->CallStaticVoidMethod(JavaONScripterClass, JavaReceiveMessage, ANDROID_MSG_SKIP_MODE, jb);
+    wrapper.env->CallStaticVoidMethod(JavaONScripterClass, JavaReceiveMessage, ANDROID_MSG_SKIP_MODE, jb);
 #endif
 }
 
 void ONScripter::setInternalAutoMode(bool enabled) {
     automode_flag = enabled;
 #ifdef ANDROID
-    JNIEnv * jniEnv = NULL;
-    JNI_VM->AttachCurrentThread(&jniEnv, NULL);
-
-    if (!jniEnv){
-        __android_log_print(ANDROID_LOG_ERROR, ONSCRIPTER_LOG_TAG, "ONScripter::setInternalAutoMode: Java VM AttachCurrentThread() failed");
-        return;
-    }
-
+    JNIWrapper wrapper(JNI_VM);
     jboolean jb = enabled ? JNI_TRUE : JNI_FALSE;
-    jniEnv->CallStaticVoidMethod(JavaONScripterClass, JavaReceiveMessage, ANDROID_MSG_AUTO_MODE, jb);
+    wrapper.env->CallStaticVoidMethod(JavaONScripterClass, JavaReceiveMessage, ANDROID_MSG_AUTO_MODE, jb);
 #endif
 }
 
 #ifdef ANDROID
-void ONScripter::onErrorCallback(const char* message, const char* extra) {
-    JNIEnv * jniEnv = NULL;
-    JNI_VM->AttachCurrentThread(&jniEnv, NULL);
+void ONScripter::sendException(ScriptException& exception) {
+    const char* message = exception.what();
+    if (message) {
+        JNIWrapper wrapper(JNI_VM);
 
-    if (!jniEnv){
-        __android_log_print(ANDROID_LOG_ERROR, ONSCRIPTER_LOG_TAG, "ONScripter::logError: Java VM AttachCurrentThread() failed");
-        return;
+        // Parse each string from char array to Unicode to send to Java
+        jstring jmessage, jline, jbacktrace;
+        const int bufSize = 2048;
+        jchar* buffer = new jchar[bufSize];
+
+        // Message
+        jsize length = basicStringToUnicode(buffer, message);
+        jmessage = wrapper.env->NewString(buffer, length);
+
+        // Backtrace
+        length = basicStringToUnicode(buffer, exception.stacktrace());
+        jbacktrace = wrapper.env->NewString(buffer, (jsize)length);
+
+        // Extra & send to Java
+        if (exception.scriptLine()) {
+            length = basicStringToUnicode(buffer, exception.scriptLine());
+            jline = wrapper.env->NewString(buffer, length);
+            wrapper.env->CallVoidMethod( JavaONScripter, JavaSendException, jmessage, jline, jbacktrace );
+        } else {
+            wrapper.env->CallVoidMethod( JavaONScripter, JavaSendException, jmessage, NULL, jbacktrace );
+        }
+        delete[] buffer;
     }
-
-    // Parse each string from char array to Unicode to send to Java
-    jstring jmessage, jextra, jbacktrace;
-    const int bufSize = 2048;
-    jchar* buffer = new jchar[bufSize];
-    jsize length;
-
-    // Message
-    length = basicStringToUnicode(buffer, message);
-    jmessage = jniEnv->NewString(buffer, length);
-
-    // Backtrace
-    char* backtraceBuffer = new char[bufSize];
-    get_backtrace(&backtraceBuffer, bufSize);
-    length = basicStringToUnicode(buffer, backtraceBuffer);
-    jbacktrace = jniEnv->NewString(buffer, (jsize)length);
-    delete[] backtraceBuffer;
-
-    // Extra & send to Java
-    if (extra) {
-        length = basicStringToUnicode(buffer, extra);
-        jextra = jniEnv->NewString(buffer, length);
-        jniEnv->CallVoidMethod( JavaONScripter, JavaSendException, jmessage, jextra, jbacktrace );
-    } else {
-        jniEnv->CallVoidMethod( JavaONScripter, JavaSendException, jmessage, NULL, jbacktrace );
-    }
-    delete[] buffer;
 }
 
 void ONScripter::sendUserMessage(MessageType_t type) {
     if (type < ANDROID_MSG_CORRUPT_SAVE_FILE) {
         errorAndExit("Invalid user message");
-    }
-
-    JNIEnv * jniEnv = NULL;
-    JNI_VM->AttachCurrentThread(&jniEnv, NULL);
-
-    if (!jniEnv){
-        __android_log_print(ANDROID_LOG_ERROR, ONSCRIPTER_LOG_TAG, "ONScripter::sendUserMessage: Java VM AttachCurrentThread() failed");
         return;
     }
 
-    jniEnv->CallStaticVoidMethod(JavaONScripterClass, JavaReceiveMessage, type, JNI_FALSE);
+    JNIWrapper wrapper(JNI_VM);
+    wrapper.env->CallStaticVoidMethod(JavaONScripterClass, JavaReceiveMessage, type, JNI_FALSE);
 }
 
 void ONScripter::sendLoadFileEvent(char* filename) {
-    JNIEnv * jniEnv = NULL;
-    JNI_VM->AttachCurrentThread(&jniEnv, NULL);
-
-    if (!jniEnv){
-        __android_log_print(ANDROID_LOG_ERROR, ONSCRIPTER_LOG_TAG, "ONScripter::sendLoadFileEvent: Java VM AttachCurrentThread() failed");
-        return;
-    }
+    JNIWrapper wrapper(JNI_VM);
 
     jstring jsavepath = NULL;
     if (save_dir) {
-        jsavepath = jniEnv->NewStringUTF(save_dir);
+        jsavepath = wrapper.env->NewStringUTF(save_dir);
     }
-    jniEnv->CallVoidMethod(JavaONScripter, JavaOnLoadFile, jniEnv->NewStringUTF(filename), jsavepath);
+    wrapper.env->CallVoidMethod(JavaONScripter, JavaOnLoadFile, wrapper.env->NewStringUTF(filename), jsavepath);
 }
 #endif

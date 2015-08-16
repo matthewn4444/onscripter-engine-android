@@ -5,6 +5,7 @@ import java.lang.ref.WeakReference;
 
 import android.app.Activity;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 
@@ -101,6 +102,7 @@ public class ONScripterView extends DemoGLSurfaceView {
     private ONScripterEventListener mListener;
     boolean mIsVideoPlaying = false;
     boolean mHasUserLeaveHint = false;
+    boolean mHasExit = false;
 
     public interface ONScripterEventListener {
         public void autoStateChanged(boolean selected);
@@ -108,6 +110,7 @@ public class ONScripterView extends DemoGLSurfaceView {
         public void videoRequested(String filename, boolean clickToSkip, boolean shouldLoop);
         public void onNativeError(NativeONSException e, String line, String backtrace);
         public void onUserMessage(UserMessage messageId);
+        public void onGameFinished();
     }
 
     static class UpdateHandler extends Handler {
@@ -177,9 +180,17 @@ public class ONScripterView extends DemoGLSurfaceView {
     }
 
     @Override
+    public void exitApp() {
+        mHasExit = true;
+        super.exitApp();
+    }
+
+    @Override
     public void onPause() {
         super.onPause();
-        mAudioThread.onPause();
+        if (!mHasExit) {
+            mAudioThread.onPause();
+        }
     }
 
     @Override
@@ -238,6 +249,17 @@ public class ONScripterView extends DemoGLSurfaceView {
             NativeONSException exception = new NativeONSException(message);
             mListener.onNativeError(exception, currentLineBuffer, backtrace);
         }
+    }
+
+    public void onFinish() {
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                if (mListener != null) {
+                    mListener.onGameFinished();
+                }
+            }
+        });
     }
 
     /** Load the libraries */

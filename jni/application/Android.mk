@@ -35,6 +35,8 @@ LOCAL_CFLAGS := $(LOCAL_C_INCLUDES:%=-I%) \
 #Change C++ file extension as appropriate
 LOCAL_CPP_EXTENSION := .cpp
 
+LOCAL_CPP_FEATURES += exceptions
+
 OBJSUFFIX := .o
 EXT_OBJS = LUAHandler.o
 include $(LOCAL_PATH)/$(APP_SUBDIR)/Makefile.onscripter

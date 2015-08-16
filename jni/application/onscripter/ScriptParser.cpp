@@ -75,8 +75,6 @@ ScriptParser::ScriptParser()
 
 #ifdef ANDROID
     setMenuLanguage("en");
-
-    script_h.setOnErrorCallback(this);
 #endif
 
     /* ---------------------------------------- */
@@ -345,11 +343,9 @@ void ScriptParser::saveGlovalData()
 
     int ret = saveFileIOBuf( "gloval.sav" );
     if (ret == -1){
-        loge( stderr, "can't open gloval.sav for writing\n");
-        exit(-1);
+        errorAndExit( "can't open gloval.sav for writing\n");
     } else if (ret == -2) {
-        loge( stderr, "unable to write gloval.sav correctly\n");
-        exit(-1);
+        errorAndExit( "unable to write gloval.sav correctly\n");
     }
 }
 
@@ -584,8 +580,7 @@ void ScriptParser::writeLog( ScriptHandler::LogInfo &info )
     }
 
     if (saveFileIOBuf( info.filename )){
-        loge( stderr, "can't write %s\n", info.filename );
-        exit( -1 );
+        errorAndExit( "can't write %s\n", info.filename );
     }
 }
 
@@ -612,17 +607,34 @@ void ScriptParser::readLog( ScriptHandler::LogInfo &info )
     }
 }
 
-void ScriptParser::errorAndExit( const char *str, const char *reason )
+void ScriptParser::errorAndExit()
 {
+#ifdef ANDROID
+    throw ScriptException();
+#else
+    exit(-1);
+#endif
+}
+
+void ScriptParser::errorAndExit( const char *fmt, ... )
+{
+    char message[1024];
     char location[1024];
     sprintf(location, "%s:%d -> Text line: '%s' (%d chars)", current_label_info.name, current_line,
         script_h.getStringBuffer(), strlen(script_h.getStringBuffer()));
 
-    if ( reason )
-        logee( stderr, location, " *** Parse error: %s [%s] ***\n", str, reason );
-    else
-        logee( stderr, location, " *** Parse error: %s ***\n", str );
+    va_list ap;
+    char buf[1024];
+    va_start(ap, fmt);
+    vsnprintf(buf, 1024, fmt, ap);
+    sprintf(message, " *** Parse error: %s ***", buf);
+#ifdef ANDROID
+    throw ScriptException(message, location);
+#else
+    loge( stderr, "%s @ %s", message, location );
     exit(-1);
+#endif
+    va_end(ap);
 }
 
 void ScriptParser::deleteNestInfo()
@@ -724,8 +736,7 @@ ScriptParser::EffectLink *ScriptParser::parseEffect(bool init_flag)
         link = link->next;
     }
 
-    loge(stderr, "Effect No. %d is not found.\n", tmp_effect.effect);
-    exit(-1);
+    errorAndExit("Effect No. %d is not found.\n", tmp_effect.effect);
 
     return NULL;
 }

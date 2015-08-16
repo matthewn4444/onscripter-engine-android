@@ -29,6 +29,7 @@
 #include <string.h>
 #include "BaseReader.h"
 #include "ScriptDecoder.h"
+#include "ScriptException.h"
 
 #ifdef ANDROID
 #include "MenuText.h"
@@ -46,14 +47,6 @@
 #endif
 
 typedef unsigned char uchar3[3];
-
-#ifdef ANDROID
-class IErrorCallback
-{
-public:
-    virtual void onErrorCallback(const char*, const char* = NULL) = 0;
-};
-#endif
 
 class ScriptHandler
 {
@@ -176,10 +169,6 @@ public:
     void setSystemLanguage(const char* languageStr);
     MenuTextBase* getSystemLanguageText() { return menuText; };
     void setRootWritableDir(char const* path);
-
-    void setOnErrorCallback(IErrorCallback* fn) {
-        error_callback = fn;
-    }
 #endif
 
     // function for kidoku history
@@ -208,7 +197,8 @@ public:
 
     LabelInfo lookupLabel( const char* label );
     LabelInfo lookupLabelNext( const char* label );
-    void errorAndExit( const char *str );
+    void errorAndExit();
+    void errorAndExit( const char *fmt, ... );
 
     ArrayVariable *getRootArrayVariable();
     void loadArrayVariable( FILE *fp );
@@ -275,7 +265,6 @@ public:
     BaseReader *cBR;
 
     ScriptDecoder* decoder;
-
 private:
     enum { OP_INVALID = 0, // 000
            OP_PLUS    = 2, // 010
@@ -329,21 +318,6 @@ private:
     int  calcArithmetic( int num1, int op, int num2 );
     int  parseArray( char **buf, ArrayVariable &array );
     int  *getArrayPtr( int no, ArrayVariable &array, int offset );
-#ifdef ANDROID
-    void logErrorWithExtra(const char* extra, const char* fmt, ...) {
-        if (error_callback) {
-            va_list ap;
-            char buf[1024];
-            va_start(ap, fmt);
-            vsnprintf(buf, 1024, fmt, ap);
-            error_callback->onErrorCallback(buf, extra);
-            va_end(ap);
-        }
-    }
-
-#define logError(fmt, ...) \
-    logErrorWithExtra(NULL, fmt, ##__VA_ARGS__)
-#endif
 
     /* ---------------------------------------- */
     /* Variable */
@@ -364,8 +338,6 @@ private:
     char *save_dir;
 #ifdef ANDROID
     char *root_writable;
-
-    IErrorCallback* error_callback;
 #endif
     int  script_buffer_length;
     char *script_buffer;

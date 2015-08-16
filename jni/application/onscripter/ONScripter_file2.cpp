@@ -420,7 +420,7 @@ int ONScripter::loadSaveFile2( int file_version )
             readChar(); // 0x00
 
             // Corrupted save file causes crashing when dividing by 0
-            if (!ai->max_param) errorAndExit("Cannot load corrupt save file", "Dividing by 0");
+            if (!ai->max_param) errorAndExit("Cannot load corrupt save file: %s", "Dividing by 0");
 
             int w = ai->max_width * ai->param / ai->max_param;
             if ( ai->max_width > 0 && w > 0 ) ai->orig_pos.w = w;
@@ -587,7 +587,7 @@ int ONScripter::loadSaveFile2( int file_version )
     current_line = i - current_label_info.start_line;
 
     // Not possible to have a negative line number, this causes crashes later
-    if (current_line < 0) errorAndExit("Cannot load corrupt save file", "Saved current line is negative.");
+    if (current_line < 0) errorAndExit("Cannot load corrupt save file: %s", "Saved current line is negative.");
 
     //printf("load %d:%d(%d-%d)\n", current_label_info.start_line, current_line, i, current_label_info.start_line);
     char *buf = script_h.getAddressByLine( i );

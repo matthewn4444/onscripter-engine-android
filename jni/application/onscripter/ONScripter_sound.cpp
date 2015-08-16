@@ -30,20 +30,13 @@
 #ifdef ANDROID
 void ONScripter::playVideoAndroid(const char *filename, bool click_flag, bool loop_flag)
 {
-    JNIEnv * jniEnv = NULL;
-    JNI_VM->AttachCurrentThread(&jniEnv, NULL);
-
-    if (!jniEnv){
-        __android_log_print(ANDROID_LOG_ERROR, "ONS", "ONScripter::playVideoAndroid: Java VM AttachCurrentThread() failed");
-        return;
-    }
-
+    JNIWrapper wrapper(JNI_VM);
     jchar *jc = new jchar[strlen(filename)];
     for (int i=0 ; i<strlen(filename) ; i++)
         jc[i] = filename[i];
-    jcharArray jca = jniEnv->NewCharArray(strlen(filename));
-    jniEnv->SetCharArrayRegion(jca, 0, strlen(filename), jc);
-    jniEnv->CallVoidMethod( JavaONScripter, JavaPlayVideo, jca, click_flag, loop_flag );
+    jcharArray jca = wrapper.env->NewCharArray(strlen(filename));
+    wrapper.env->SetCharArrayRegion(jca, 0, strlen(filename), jc);
+    wrapper.env->CallVoidMethod( JavaONScripter, JavaPlayVideo, jca, click_flag, loop_flag );
     delete[] jc;
 }
 #endif
