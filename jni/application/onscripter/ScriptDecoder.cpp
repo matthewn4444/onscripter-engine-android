@@ -108,7 +108,16 @@ ScriptDecoder* ScriptDecoder::detectAndAllocateScriptDecoder(char* buffer, size_
                         langCounter[j]++;
 
                         // Found our decoder
+#if defined(ENABLE_KOREAN) && defined(ENABLE_CHINESE)
+                        // Sometimes Korean scripts have errors and counts as Chinese, so we need to make
+                        // sure that if it is Chinese it is overwhelmingly Chinese. Therefore to be chosen
+                        // as Chinese, Korean must be lower than 80% of Chinese count. Korean/Chinese < 80%
+                        if (langCounter[j] >= TOTAL_COUNT_FINISHED
+                            && (j != 2 || j == 2 && langCounter[1] * 100 / langCounter[2] < 80)) {
+#else
                         if (langCounter[j] >= TOTAL_COUNT_FINISHED) {
+#endif
+
                             foundDecoder = decoders[j];
                         }
                     }
