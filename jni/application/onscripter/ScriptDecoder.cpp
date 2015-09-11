@@ -208,7 +208,7 @@ bool KoreanDecoder::isKorean(char* buffer)
     // http://ftp.unicode.org/Public/MAPPINGS/VENDORS/APPLE/KOREAN.TXT
     return  /* Hangul syllables */  ((x >= 0xB0A1 && x <= 0xC8FE) \
             /* Standard Korean */ || (x >= 0xA141 && x <= 0xA974) \
-            /* Chinese Gylphs */  || (x >= 0xEFA1 && x <= 0xFDFE) \
+            /* Chinese Gylphs */  || (x >= 0xD0A1 && x <= 0xFDFE) \
                                     ) == true;
 }
 #endif
