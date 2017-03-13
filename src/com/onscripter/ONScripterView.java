@@ -251,6 +251,9 @@ public class ONScripterView extends DemoGLSurfaceView {
         }
     }
 
+    protected void onLoadFile(String filename, String savePath) {
+    }
+
     public void onFinish() {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override

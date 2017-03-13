@@ -37,3 +37,6 @@ local.properties
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# NDK
+.externalNativeBuild/

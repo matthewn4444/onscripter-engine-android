@@ -31,28 +31,28 @@ This is a very simple example of enabling ONScripter in your app with events.
         protected void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
 
-            boolean useHQAudio = true;
-            boolean renderOutline = true;
+            final boolean useHQAudio = true;
+            final boolean renderOutline = true;
 
             // Simple Constructor
             //   Looks for default.ttf inside game folder, if not found it will crash
-            // mGame = ONScripterView(this, "/sdcard/path/to/game/directory");
+            // mGame = new ONScripterView(this, "/sdcard/path/to/game/directory");
 
             // Constructor with Specified Font
-            // mGame = ONScripterView(this, "/sdcard/path/to/game/directory", "/path/to/font/file");
+            // mGame = new ONScripterView(this, "/sdcard/path/to/game/directory", "/path/to/font/file");
 
             // Constructor with Specified Font and Choice of Audio
-            // mGame = ONScripterView(this, "/sdcard/path/to/game/directory", "/path/to/font/file",
+            // mGame = new ONScripterView(this, "/sdcard/path/to/game/directory", "/path/to/font/file",
             //   useHQAudio, renderOutline);
 
             // Full Constructor with Specified Save Path
-            mGame = ONScripterView(this, "/path/to/game/directory", "/path/to/font/file",
+            mGame = new ONScripterView(this, "/path/to/game/directory", "/path/to/font/file",
                 "/path/to/save/folder", useHQAudio, renderOutline);
 
             setContentView(mGame);
 
             // [Optional] Receive Events from the game
-            mGame.setONScripterEventListener(new ONScripterEventListener() {
+            mGame.setONScripterEventListener(new ONScripterView.ONScripterEventListener() {
                 @Override
                 public void autoStateChanged(boolean selected) {
                     // User has turned on auto mode
@@ -66,18 +66,19 @@ This is a very simple example of enabling ONScripter in your app with events.
                 @Override
                 public void onUserMessage(UserMessage messageId) {
                     if (messageId == ONScripterView.CORRUPT_SAVE_FILE) {
-                        Toast.makeText(this, "Cannot open save file, it is corrupted");
+                        Toast.makeText(GameActivity.this, "Cannot open save file, it is corrupted", 
+                                Toast.LENGTH_SHORT).show();
                     }
                 }
 
                 @Override
-                public void videoRequested(final String filename, final boolean clickToSkip, final boolean shouldLoop) {
+                public void videoRequested(String filename, boolean clickToSkip, boolean shouldLoop) {
                     // Request playing this video in an external video player
                     // If you have your own video player built into your app, you can
                     // pause this thread and play the video. Unfortunately I was unable
                     // to get smpeg library to work within this library
                     try {
-                        String filename = filename.replace('\\', '/');
+                        String filename2 = filename.replace('\\', '/');
                         Uri uri = Uri.parse(filename2);
                         Intent i = new Intent(Intent.ACTION_VIEW);
                         i.setDataAndType(uri, "video/*");
@@ -90,8 +91,21 @@ This is a very simple example of enabling ONScripter in your app with events.
 
                 @Override
                 public void onNativeError(NativeONSException e, String line, String backtrace) {
-                    Toast.makeText(this, "An error has occured: " + line);
+                    Toast.makeText(GameActivity.this, "An error has occured: " + line, Toast.LENGTH_SHORT).show();
                     Log.w("ONScripter", backtrace);
+                }
+
+                @Override
+                public void onUserMessage(ONScripterView.UserMessage messageId) {
+                    if (messageId == ONScripterView.UserMessage.CORRUPT_SAVE_FILE) {
+                        Toast.makeText(ONScripterActivity.this, "Cannot open save file, it is corrupted", 
+                                Toast.LENGTH_SHORT).show();
+                    }
+                }
+
+                @Override
+                public void onGameFinished() {
+                    // Game ended
                 }
             });
         }
@@ -108,7 +122,7 @@ This is a very simple example of enabling ONScripter in your app with events.
         protected void onResume() {
             super.onResume();
             if (mGame != null) {
-                mGame.onPause();
+                mGame.onResume();
             }
         }
 
