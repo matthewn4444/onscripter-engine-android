@@ -116,15 +116,6 @@ This is a very simple example of enabling ONScripter in your app with events.
 
             // Set black background behind the engine
             findViewById(android.R.id.content).setBackgroundColor(Color.BLACK);
-
-            // Set immersive mode
-            getWindow().getDecorView().setSystemUiVisibility(
-            View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                    | View.SYSTEM_UI_FLAG_FULLSCREEN
-                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         }
 
         @Override
@@ -141,6 +132,15 @@ This is a very simple example of enabling ONScripter in your app with events.
             if (mGame != null) {
                 mGame.onResume();
             }
+
+            // Set immersive mode
+            getWindow().getDecorView().setSystemUiVisibility(
+            View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         }
 
         @Override

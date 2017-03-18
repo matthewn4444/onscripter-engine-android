@@ -8,30 +8,30 @@ import android.media.AudioTrack;
 
 class AudioThread {
 
-    private final Activity mParent;
     private AudioTrack mAudio;
     private byte[] mAudioBuffer;
 
-    public AudioThread(Activity parent)
+    public AudioThread()
     {
-        mParent = parent;
         mAudio = null;
         mAudioBuffer = null;
         nativeAudioInitJavaCallbacks();
     }
 
-    public int fillBuffer()
+    /* Called from SDL_androidaudio.c */
+    int fillBuffer()
     {
         while (mAudio.getPlayState() == AudioTrack.PLAYSTATE_PAUSED) {
             try{
                 Thread.sleep(500);
-            } catch(Exception e){}
+            } catch(Exception ignored){}
         };
         mAudio.write( mAudioBuffer, 0, mAudioBuffer.length );
         return 1;
     }
 
-    public int initAudio(int rate, int channels, int encoding, int bufSize)
+    /* Called from SDL_androidaudio.c */
+    int initAudio(int rate, int channels, int encoding, int bufSize)
     {
         if( mAudio == null )
         {
@@ -57,11 +57,13 @@ class AudioThread {
         return mAudioBuffer.length;
     }
 
+    /* Called from SDL_androidaudio.c */
     public byte[] getBuffer()
     {
         return mAudioBuffer;
     }
 
+    /* Called from SDL_androidaudio.c */
     public int deinitAudio()
     {
         if( mAudio != null )
@@ -74,6 +76,7 @@ class AudioThread {
         return 1;
     }
 
+    /* Called from SDL_androidaudio.c */
     public int initAudioThread()
     {
         // Make audio thread priority higher so audio thread won't get underrun

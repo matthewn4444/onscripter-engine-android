@@ -2,11 +2,7 @@ package com.onscripter;
 
 import java.util.Locale;
 
-import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;
-import javax.microedition.khronos.egl.EGLContext;
-import javax.microedition.khronos.egl.EGLDisplay;
-import javax.microedition.khronos.egl.EGLSurface;
 import javax.microedition.khronos.opengles.GL10;
 
 import android.app.Activity;
@@ -17,24 +13,8 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 
 class DemoRenderer extends GLSurfaceView_SDL.Renderer {
-    public DemoRenderer(Activity _context, String currentDirectory)
-    {
-        this(_context, currentDirectory, null);
-    }
-
-    public DemoRenderer(Activity _context, String currentDirectory, String fontPath)
-    {
-        this(_context, currentDirectory, fontPath, null, false, false);
-    }
-
-    public DemoRenderer(Activity _context, String currentDirectory, String fontPath, boolean useHQAudio, boolean renderOutline)
-    {
-        this(_context, currentDirectory, fontPath, null, useHQAudio, renderOutline);
-    }
-
-    public DemoRenderer(Activity _context, String currentDirectory, String fontPath, String savePath, boolean useHQAudio, boolean renderOutline)
-    {
-        context = _context;
+    public DemoRenderer(String currentDirectory, String fontPath, String savePath,
+                        boolean useHQAudio, boolean renderOutline) {
         mCurrentDirectory = currentDirectory;
         mFontPath = fontPath;
         mSavePath = savePath;
@@ -45,7 +25,8 @@ class DemoRenderer extends GLSurfaceView_SDL.Renderer {
 
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-        // nativeInit();
+        // Set background to black when nothing is drawn
+        gl.glEnable(GL10.GL_DEPTH_TEST);
     }
 
     @Override
@@ -56,7 +37,6 @@ class DemoRenderer extends GLSurfaceView_SDL.Renderer {
 
     @Override
     public void onDrawFrame(GL10 gl) {
-
         nativeInitJavaCallbacks();
 
         // Calls main() and never returns, hehe - we'll call eglSwapBuffers() from native code
@@ -105,8 +85,9 @@ class DemoRenderer extends GLSurfaceView_SDL.Renderer {
 
     }
 
-    public int swapBuffers() // Called from native code, returns 1 on success, 0 when GL context lost (user put app to background)
-    {
+    // Called from native code, returns 1 on success, 0 when GL context lost
+    // (user put app to background)
+    public int swapBuffers() {
         return super.SwapBuffers() ? 1 : 0;
     }
 
@@ -140,39 +121,25 @@ class DemoRenderer extends GLSurfaceView_SDL.Renderer {
     native int nativeGetWidth();
     native int nativeGetHeight();
 
-    private Activity context = null;
     private final String mCurrentDirectory;
     private final String mFontPath;
     private final String mSavePath;
     private final boolean mUseHQAudio;
-
-    private final EGL10 mEgl = null;
-    private final EGLDisplay mEglDisplay = null;
-    private final EGLSurface mEglSurface = null;
-    private final EGLContext mEglContext = null;
-    private final int skipFrames = 0;
     private final boolean mShouldRenderOutline;
 }
 
 class DemoGLSurfaceView extends GLSurfaceView_SDL {
-    public DemoGLSurfaceView(Activity context, String currentDirectory) {
-        this(context, currentDirectory, null);
-    }
-
-    public DemoGLSurfaceView(Activity context, String currentDirectory, String fontPath) {
-        this(context, currentDirectory, fontPath, null, false, false);
-    }
-
-    public DemoGLSurfaceView(Activity context, String currentDirectory, String fontPath, String savePath, boolean useHQAudio, boolean shouldRenderOutline) {
+    public DemoGLSurfaceView(Context context, String currentDirectory, String fontPath,
+                             String savePath, boolean useHQAudio, boolean shouldRenderOutline) {
         super(context);
         nativeInitJavaCallbacks();
-        mRenderer = new DemoRenderer(context, currentDirectory, fontPath, savePath, useHQAudio, shouldRenderOutline);
+        mRenderer = new DemoRenderer(currentDirectory, fontPath, savePath, useHQAudio,
+                shouldRenderOutline);
         setRenderer(mRenderer);
     }
 
     @Override
-    public boolean onTouchEvent(final MotionEvent event)
-    {
+    public boolean onTouchEvent(final MotionEvent event) {
         // TODO: add multitouch support (added in Android 2.0 SDK)
         int action = -1;
         if( event.getAction() == MotionEvent.ACTION_DOWN ) {
@@ -203,41 +170,39 @@ class DemoGLSurfaceView extends GLSurfaceView_SDL {
     };
 
     @Override
-    public boolean onKeyDown(int keyCode, final KeyEvent event)
-    {
-        if(keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN){
-            Activity activity = (Activity)this.getContext();
-            AudioManager audio = (AudioManager)activity.getSystemService(Context.AUDIO_SERVICE);
-            int volume = audio.getStreamVolume(AudioManager.STREAM_MUSIC) + (keyCode == KeyEvent.KEYCODE_VOLUME_UP ? 1 : (-1));
-            if(volume >= 0 && volume <= audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)){
+    public boolean onKeyDown(int keyCode, final KeyEvent event) {
+        if(keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            Activity activity = (Activity) this.getContext();
+            AudioManager audio = (AudioManager) activity.getSystemService(Context.AUDIO_SERVICE);
+            int volume = audio.getStreamVolume(AudioManager.STREAM_MUSIC)
+                    + (keyCode == KeyEvent.KEYCODE_VOLUME_UP ? 1 : (-1));
+            if (volume >= 0 && volume <= audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)) {
                 audio.setStreamVolume(AudioManager.STREAM_MUSIC, volume, AudioManager.FLAG_SHOW_UI);
             }
             return true;
         }
 
-        if (keyCode == KeyEvent.KEYCODE_MENU){
+        if (keyCode == KeyEvent.KEYCODE_MENU) {
             super.onKeyDown(keyCode, event);
             return false;
         }
-        nativeKey( keyCode, 1 );
-
+        nativeKey(keyCode, 1);
         return true;
     }
 
     @Override
-    public boolean onKeyUp(int keyCode, final KeyEvent event)
-    {
+    public boolean onKeyUp(int keyCode, final KeyEvent event) {
         if(keyCode == KeyEvent.KEYCODE_MENU){
             super.onKeyUp(keyCode, event);
             return false;
         }
-        nativeKey( keyCode, 0 );
+        nativeKey(keyCode, 0);
         return true;
     }
 
     @Override
     public void onPause() {
-        nativeKey( 0, 3 ); // send SDL_ACTIVEEVENT
+        nativeKey(0, 3); // send SDL_ACTIVEEVENT
         super.onPause();
         surfaceDestroyed(this.getHolder());
     }
@@ -245,7 +210,7 @@ class DemoGLSurfaceView extends GLSurfaceView_SDL {
     @Override
     public void onResume() {
         super.onResume();
-        nativeKey( 0, 3 ); // send SDL_ACTIVEEVENT
+        nativeKey(0, 3); // send SDL_ACTIVEEVENT
     }
 
     DemoRenderer mRenderer;
