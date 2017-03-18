@@ -113,13 +113,13 @@ void optionVersion()
 extern "C"
 {
 JNIEXPORT jint JNICALL 
-JAVA_EXPORT_NAME(ONScripterView_nativeGetWidth) ( JNIEnv*  env, jobject thiz )
+JAVA_EXPORT_NAME(DemoRenderer_nativeGetWidth) ( JNIEnv* env, jobject thiz )
 {
 	return ons ? ons->getWidth() : 0;
 }
 
 JNIEXPORT jint JNICALL 
-JAVA_EXPORT_NAME(ONScripterView_nativeGetHeight) ( JNIEnv*  env, jobject thiz )
+JAVA_EXPORT_NAME(DemoRenderer_nativeGetHeight) ( JNIEnv* env, jobject thiz )
 {
 	return ons ? ons->getHeight() : 0;
 }

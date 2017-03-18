@@ -11,6 +11,7 @@ import javax.microedition.khronos.opengles.GL10;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Point;
 import android.media.AudioManager;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -49,14 +50,8 @@ class DemoRenderer extends GLSurfaceView_SDL.Renderer {
 
     @Override
     public void onSurfaceChanged(GL10 gl, int w, int h) {
-        //gl.glViewport(0, 0, w, h);
-        gl.glMatrixMode(GL10.GL_PROJECTION);
-        gl.glLoadIdentity();
-        gl.glMatrixMode(GL10.GL_MODELVIEW);
-        gl.glLoadIdentity();
-        gl.glViewport(0, 0, w, h);
-        gl.glOrthof(0.0f, w, h, 0.0f, 0.0f, 1.0f);
-        nativeResize(w, h);
+        final Point size = getScaledDimensions(w, h);
+        nativeResize(size.x, size.y);
     }
 
     @Override
@@ -119,10 +114,31 @@ class DemoRenderer extends GLSurfaceView_SDL.Renderer {
         nativeDone();
     };
 
+    Point getScaledDimensions(int containerWidth, int containerHeight) {
+        final Point size = new Point(containerWidth, containerHeight);
+        int gameWidth = nativeGetWidth();
+        int gameHeight = nativeGetHeight();
+        if (gameWidth > 0 && gameHeight > 0) {
+            float containerRatio = containerWidth * 1f / containerHeight;
+            float gameRatio = gameWidth * 1f / gameHeight;
+
+            if (gameRatio > containerRatio) {
+                // Use container's width
+                size.y = (int) (containerWidth / gameRatio);
+            } else {
+                // Use container's height
+                size.x = (int) (containerHeight * gameRatio);
+            }
+        }
+        return size;
+    }
+
     private native void nativeInitJavaCallbacks();
     private native void nativeInit(String currentDirectoryPath, String[] arg);
     private native void nativeResize(int w, int h);
     private native void nativeDone();
+    native int nativeGetWidth();
+    native int nativeGetHeight();
 
     private Activity context = null;
     private final String mCurrentDirectory;
@@ -173,6 +189,13 @@ class DemoGLSurfaceView extends GLSurfaceView_SDL {
         }
 
         return true;
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        final Point size = mRenderer.getScaledDimensions(
+                MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.getSize(heightMeasureSpec));
+        setMeasuredDimension(size.x, size.y);
     }
 
     public void exitApp() {

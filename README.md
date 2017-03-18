@@ -35,7 +35,7 @@ This is a very simple example of enabling ONScripter in your app with events.
             final boolean renderOutline = true;
 
             // Simple Constructor
-            //   Looks for default.ttf inside game folder, if not found it will crash
+            // Looks for default.ttf inside game folder, if not found it will crash
             // mGame = new ONScripterView(this, "/sdcard/path/to/game/directory");
 
             // Constructor with Specified Font
@@ -66,7 +66,7 @@ This is a very simple example of enabling ONScripter in your app with events.
                 @Override
                 public void onUserMessage(UserMessage messageId) {
                     if (messageId == ONScripterView.CORRUPT_SAVE_FILE) {
-                        Toast.makeText(GameActivity.this, "Cannot open save file, it is corrupted", 
+                        Toast.makeText(GameActivity.this, "Cannot open save file, it is corrupted",
                                 Toast.LENGTH_SHORT).show();
                     }
                 }
@@ -98,7 +98,7 @@ This is a very simple example of enabling ONScripter in your app with events.
                 @Override
                 public void onUserMessage(ONScripterView.UserMessage messageId) {
                     if (messageId == ONScripterView.UserMessage.CORRUPT_SAVE_FILE) {
-                        Toast.makeText(ONScripterActivity.this, "Cannot open save file, it is corrupted", 
+                        Toast.makeText(ONScripterActivity.this, "Cannot open save file, it is corrupted",
                                 Toast.LENGTH_SHORT).show();
                     }
                 }
@@ -108,6 +108,23 @@ This is a very simple example of enabling ONScripter in your app with events.
                     // Game ended
                 }
             });
+
+            // Center the game in the middle of the screen
+            FrameLayout.LayoutParams p = (FrameLayout.LayoutParams) mGame.getLayoutParams();
+            p.gravity = Gravity.CENTER;
+            mGame.setLayoutParams(p);
+
+            // Set black background behind the engine
+            findViewById(android.R.id.content).setBackgroundColor(Color.BLACK);
+
+            // Set immersive mode
+            getWindow().getDecorView().setSystemUiVisibility(
+            View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         }
 
         @Override

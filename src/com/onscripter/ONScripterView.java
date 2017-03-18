@@ -40,8 +40,6 @@ public class ONScripterView extends DemoGLSurfaceView {
     private final Activity mActivity;
 
     // Native methods
-    private native int nativeGetWidth();
-    private native int nativeGetHeight();
     private native void nativeSetSentenceFontScale(double scale);
     private native int nativeGetDialogFontSize();
 
@@ -207,11 +205,11 @@ public class ONScripterView extends DemoGLSurfaceView {
     }
 
     public int getGameWidth() {
-        return nativeGetWidth();
+        return mRenderer.nativeGetWidth();
     }
 
     public int getGameHeight() {
-        return nativeGetHeight();
+        return mRenderer.nativeGetHeight();
     }
 
     public void setFontScaling(double scaleFactor) {
