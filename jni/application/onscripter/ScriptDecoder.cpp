@@ -113,7 +113,7 @@ ScriptDecoder* ScriptDecoder::detectAndAllocateScriptDecoder(char* buffer, size_
                         // sure that if it is Chinese it is overwhelmingly Chinese. Therefore to be chosen
                         // as Chinese, Korean must be lower than 80% of Chinese count. Korean/Chinese < 80%
                         if (langCounter[j] >= TOTAL_COUNT_FINISHED
-                            && (j != 2 || j == 2 && langCounter[1] * 100 / langCounter[2] < 80)) {
+                            && (j != 2 || ((j == 2 && langCounter[1] * 100 / langCounter[2] < 80)))) {
 #else
                         if (langCounter[j] >= TOTAL_COUNT_FINISHED) {
 #endif

@@ -2,7 +2,7 @@
 #define __LANGUAGE_DECODER_H__
 
 #include <stdio.h>
-#include "onscripter_log.h"
+#include "ONScripter_log.h"
 
 class ScriptDecoder {
 public:
