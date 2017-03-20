@@ -2,7 +2,7 @@
 /*
  *  DirectReader.cpp - Reader from independent files
  *
- *  Copyright (c) 2001-2014 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2016 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -31,7 +31,9 @@
         ( ((x) & 0xe0) == 0xe0 || ((x) & 0xe0) == 0x80 )
 
 extern unsigned short convSJIS2UTF16( unsigned short in );
+extern unsigned short convUTF162SJIS( unsigned short in );
 extern int convUTF16ToUTF8( unsigned char dst[4], unsigned short src );
+extern unsigned short convUTF8ToUTF16( const char **src );
 
 #ifndef SEEK_END
 #define SEEK_END 2
@@ -407,6 +409,22 @@ void DirectReader::convertFromSJISToUTF8( char *dst_buf, const char *src_buf )
             c = convUTF16ToUTF8(utf8_buf, unicode);
             for (i=0 ; i<c ; i++)
                 *dst_buf++ = utf8_buf[i];
+        }
+        else{
+            *dst_buf++ = *src_buf++;
+        }
+    }
+    *dst_buf++ = 0;
+}
+
+void DirectReader::convertFromUTF8ToSJIS( char *dst_buf, const char *src_buf )
+{
+    while(*src_buf){
+        if (*src_buf & 0x80){
+            unsigned short unicode = convUTF8ToUTF16(&src_buf);
+            unsigned short sjis = convUTF162SJIS(unicode);
+            *dst_buf++ = (sjis>>8);
+            *dst_buf++ = sjis & 0xff;
         }
         else{
             *dst_buf++ = *src_buf++;

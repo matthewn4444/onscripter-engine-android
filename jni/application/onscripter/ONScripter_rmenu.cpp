@@ -2,7 +2,7 @@
  *
  *  ONScripter_rmenu.cpp - Right click menu handler of ONScripter
  *
- *  Copyright (c) 2001-2014 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2016 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -112,7 +112,7 @@ void ONScripter::leaveSystemCall( bool restore_flag )
     if ( restore_flag ){
         
         current_page = cached_page;
-        restoreTextBuffer();
+        SDL_BlitSurface( backup_surface, NULL, text_info.image_surface, NULL );
         root_button_link.next = shelter_button_link;
         root_select_link.next = shelter_select_link;
 
@@ -136,6 +136,8 @@ void ONScripter::leaveSystemCall( bool restore_flag )
 
 int ONScripter::executeSystemCall()
 {
+    SDL_BlitSurface( text_info.image_surface, NULL, backup_surface, NULL );
+    
     enterSystemCall();
 
     while(system_menu_mode != SYSTEM_NULL){
@@ -307,7 +309,7 @@ bool ONScripter::executeSystemLoad()
     menu_font.top_xy[1] = (screen_height * screen_ratio2 / screen_ratio1  - menu_font.num_xy[1] * menu_font.pitch_xy[1]) / 2;
     menu_font.setXY( (menu_font.num_xy[0] - strlen( load_menu_name ) / 2) / 2, 0 );
     uchar3 color = {0xff, 0xff, 0xff};
-    drawString( load_menu_name, color, &menu_font, true, accumulation_surface, NULL, &text_info, true );
+    drawString( load_menu_name, color, &menu_font, true, accumulation_surface, NULL, &text_info, true, true );
     menu_font.newLine();
     menu_font.newLine();
         
@@ -398,6 +400,13 @@ bool ONScripter::executeSystemLoad()
 
             flushEvent();
 
+#ifdef USE_LUA
+            if (lua_handler.isCallbackEnabled(LUAHandler::LUA_LOAD)){
+                if (lua_handler.callFunction(true, "load", &file_no))
+                    errorAndExit( lua_handler.error_str );
+            }
+#endif
+
             if (loadgosub_label)
                 gosubReal( loadgosub_label, script_h.getCurrent() );
 
@@ -428,7 +437,7 @@ void ONScripter::executeSystemSave()
     menu_font.top_xy[1] = (screen_height * screen_ratio2 / screen_ratio1  - menu_font.num_xy[1] * menu_font.pitch_xy[1]) / 2;
     menu_font.setXY((menu_font.num_xy[0] - strlen( save_menu_name ) / 2 ) / 2, 0);
     uchar3 color = {0xff, 0xff, 0xff};
-    drawString( save_menu_name, color, &menu_font, true, accumulation_surface, NULL, &text_info, true );
+    drawString( save_menu_name, color, &menu_font, true, accumulation_surface, NULL, &text_info, true, true );
     menu_font.newLine();
     menu_font.newLine();
         
@@ -485,8 +494,8 @@ void ONScripter::executeSystemSave()
     if ( current_button_state.button > 0 ){
         int file_no = current_button_state.button;
         if (executeSystemYesNo( SYSTEM_SAVE, file_no )){
-            if (saveon_flag && internal_saveon_flag) saveSaveFile(false);
-            saveSaveFile( true, file_no );
+            if (saveon_flag && internal_saveon_flag) storeSaveFile();
+            writeSaveFile( file_no );
             leaveSystemCall();
         }
         return;

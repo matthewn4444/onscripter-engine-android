@@ -2,7 +2,7 @@
  *
  *  ScriptHandler.cpp - Script manipulation class
  *
- *  Copyright (c) 2001-2014 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2016 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -24,7 +24,7 @@
 #include "ScriptHandler.h"
 
 #define TMP_SCRIPT_BUF_LEN 4096
-#define STRING_BUFFER_LENGTH 2048
+#define STRING_BUFFER_LENGTH 4096
 
 #define SKIP_SPACE(p) while ( *(p) == ' ' || *(p) == '\t' ) (p)++
 
@@ -145,7 +145,16 @@ void ScriptHandler::reset()
         delete[] clickstr_list;
         clickstr_list = NULL;
     }
-    internal_current_script = NULL;
+
+    is_internal_script = false;
+    ScriptContext *sc = root_script_context.next;
+    while (sc){
+        ScriptContext *tmp = sc;
+        sc = sc->next;
+        delete tmp;
+    };
+    last_script_context = &root_script_context;
+    last_script_context->next = NULL;
 }
 
 #ifdef ANDROID
@@ -160,7 +169,7 @@ void ScriptHandler::setRootWritableDir(const char *path)
 void ScriptHandler::setSaveDir(const char *path)
 {
     if (save_dir) delete[] save_dir;
-    save_dir = new char[ strlen(path) ];
+    save_dir = new char[ strlen(path)+1 ];
     strcpy(save_dir, path);
 }
 
@@ -170,38 +179,33 @@ FILE *ScriptHandler::fopen( const char *path, const char *mode, bool use_save_di
 FILE *ScriptHandler::fopen( const char *path, const char *mode, bool use_save_dir )
 #endif
 {
-    char *filename;
-    if (use_save_dir && save_dir){
+    char filename[256];
 #ifdef ANDROID
+    if (use_save_dir && save_dir){
         if (root_writable) {
-            filename = new char[strlen(root_writable)+strlen(save_dir)+strlen(path)+1];
             sprintf( filename, "%s%s%s", root_writable, save_dir, path );
         } else {
-            filename = new char[strlen(save_dir)+strlen(path)+1];
             sprintf( filename, "%s%s", save_dir, path );
         }
     } else {
         if (root_writable && (strcmp(mode, "wb") == 0 || use_root_write_dir)) {
-            filename = new char[strlen(root_writable)+strlen(archive_path)+strlen(path)+1];
             sprintf( filename, "%s%s%s", root_writable, archive_path, path );
         } else {
-            filename = new char[strlen(archive_path)+strlen(path)+1];
             sprintf( filename, "%s%s", archive_path, path );
         }
-#else
-        filename = new char[strlen(save_dir)+strlen(path)+1];
-        sprintf( filename, "%s%s", save_dir, path );
     }
-    else{
-        filename = new char[strlen(archive_path)+strlen(path)+1];
+#else
+    if (use_save_dir && save_dir)
+        sprintf( filename, "%s%s", save_dir, path );
+    else
         sprintf( filename, "%s%s", archive_path, path );
 #endif
-    }
 
-    FILE *fp = ::fopen( filename, mode );
-    delete[] filename;
+    for ( unsigned int i=0 ; i<strlen( filename ) ; i++ )
+        if ( filename[i] == '/' || filename[i] == '\\' )
+            filename[i] = DELIMITER;
 
-    return fp;
+    return ::fopen( filename, mode );
 }
 
 void ScriptHandler::setKeyTable( const unsigned char *key_table )
@@ -251,6 +255,7 @@ const char *ScriptHandler::readToken()
 #endif             
              (!english_mode && ch == '>') ||
              ch == '!' || ch == '#' || ch == ',' || ch == '"'){ // text
+        bool ignore_clickstr_flag = false;
         while(1){
             if ( !ScriptDecoder::isOneByte(ch) ){
                 addStringBuffer( ch );
@@ -261,8 +266,13 @@ const char *ScriptHandler::readToken()
 #ifdef ENABLE_KOREAN
                 while(*buf == '\t') buf ++; // prevent to eliminate space character. : by shlee
 #endif
+                if (!wait_script && !ignore_clickstr_flag &&
+                    checkClickstr(buf-2) > 0)
+                    wait_script = buf;
+                ignore_clickstr_flag = false;
             }
             else{
+                ignore_clickstr_flag = false;
                 if (ch == '%' || ch == '?'){
                     // To correct a common parsing error where non-English scripts are corrupted
                     // followed by a 1-Byte '?' or '%', we ignore them if it is not followed by a number
@@ -293,7 +303,8 @@ const char *ScriptHandler::readToken()
                     if (ch == 0x0a || ch == '\0') break;
                     addStringBuffer( ch );
                     buf++;
-                    if (!wait_script && ch == '@') wait_script = buf;
+                    if (ch == '_') ignore_clickstr_flag = true;
+                    if (!wait_script && (ch == '@' || ch == '\\')) wait_script = buf;
                 }
             }
             ch = *buf;
@@ -503,28 +514,40 @@ void ScriptHandler::popCurrent()
 
 void ScriptHandler::enterExternalScript(char *pos)
 {
-    internal_current_script = current_script;
+    ScriptContext *sc = new ScriptContext;
+    last_script_context->next = sc;
+    sc->prev = last_script_context;
+    last_script_context = sc;
+    
+    is_internal_script = true;
+    sc->current_script = current_script;
     current_script = pos;
-    internal_next_script = next_script;
+    sc->next_script = next_script;
     next_script = pos;
-    internal_end_status = end_status;
-    internal_current_variable = current_variable;
-    internal_pushed_variable = pushed_variable;
+    sc->end_status = end_status;
+    sc->current_variable = current_variable;
+    sc->pushed_variable = pushed_variable;
 }
 
 void ScriptHandler::leaveExternalScript()
 {
-    current_script = internal_current_script;
-    internal_current_script = NULL;
-    next_script = internal_next_script;
-    end_status = internal_end_status;
-    current_variable = internal_current_variable;
-    pushed_variable = internal_pushed_variable;
+    ScriptContext *sc = last_script_context;
+    last_script_context = sc->prev;
+    last_script_context->next = NULL;
+    if (last_script_context->prev == NULL)
+        is_internal_script = false;
+
+    current_script = sc->current_script;
+    next_script = sc->next_script;
+    end_status = sc->end_status;
+    current_variable = sc->current_variable;
+    pushed_variable = sc->pushed_variable;
+    delete sc;
 }
 
 bool ScriptHandler::isExternalScript()
 {
-    return (internal_current_script != NULL);
+    return !is_internal_script;
 }
 
 int ScriptHandler::getOffset( char *pos )
@@ -655,7 +678,7 @@ void ScriptHandler::setSystemLanguage(const char* languageStr) {
 
 void ScriptHandler::markAsKidoku( char *address )
 {
-    if (!kidokuskip_flag || internal_current_script != NULL) return;
+    if (!kidokuskip_flag || is_internal_script) return;
 
     int offset = current_script - script_buffer;
     if ( address ) offset = address - script_buffer;
@@ -1346,6 +1369,7 @@ int ScriptHandler::labelScript()
                 buf++;
                 current_line++;
             }
+            SKIP_SPACE( buf );
             label_info[ label_counter ].start_address = buf;
         }
         else{
@@ -1719,12 +1743,12 @@ void ScriptHandler::readNextOp( char **buf, int *op, int *num )
         else                 (*buf)++;
         SKIP_SPACE(*buf);
     }
-    else{
-        if ( (*buf)[0] == '-' ){
-            minus_flag = true;
-            (*buf)++;
-            SKIP_SPACE(*buf);
-        }
+
+    SKIP_SPACE(*buf);
+    if ( (*buf)[0] == '-' ){
+        minus_flag = true;
+        (*buf)++;
+        SKIP_SPACE(*buf);
     }
 
     if ( (*buf)[0] == '(' ){

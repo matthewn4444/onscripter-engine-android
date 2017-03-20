@@ -2,7 +2,7 @@
  * 
  *  ONScripter_lut.cpp - command lookup-table for ONScripter
  *
- *  Copyright (c) 2001-2014 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2016 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -57,6 +57,7 @@ static ONScripter::FuncLUT func_lut[] = {
     {"textoff",			&ONScripter::textoffCommand},
     {"texthide",		&ONScripter::texthideCommand},
     {"textgosub",		&ONScripter::textgosubCommand},
+    {"textcolor",		&ONScripter::textcolorCommand},
     {"textclear",		&ONScripter::textclearCommand},
     {"textbtnwait",		&ONScripter::btnwaitCommand},
     {"texec",			&ONScripter::texecCommand},
@@ -88,6 +89,7 @@ static ONScripter::FuncLUT func_lut[] = {
     {"setwindow3",		&ONScripter::setwindow3Command},
     {"setwindow2",		&ONScripter::setwindow2Command},
     {"setwindow",		&ONScripter::setwindowCommand},
+    {"setlayer",		&ONScripter::setlayerCommand},
     {"setkinsoku",		&ONScripter::setkinsokuCommand},
     {"setcursor",		&ONScripter::setcursorCommand},
     {"selnum",			&ONScripter::selectCommand},
@@ -99,6 +101,7 @@ static ONScripter::FuncLUT func_lut[] = {
     {"savetime",		&ONScripter::savetimeCommand},
     {"savescreenshot2",	&ONScripter::savescreenshotCommand},
     {"savescreenshot",	&ONScripter::savescreenshotCommand},
+    {"savepoint",		&ONScripter::savepointCommand},
     {"saveon",			&ONScripter::saveonCommand},
     {"saveoff",			&ONScripter::saveoffCommand},
     {"savenumber",		&ONScripter::savenumberCommand},
@@ -148,6 +151,7 @@ static ONScripter::FuncLUT func_lut[] = {
     {"ns3",				&ONScripter::nsaCommand},
     {"ns2",				&ONScripter::nsaCommand},
     {"nega",			&ONScripter::negaCommand},
+    {"nextcsel",		&ONScripter::nextcselCommand},
 
     {"mul",				&ONScripter::mulCommand},
     {"msp2",			&ONScripter::mspCommand},
@@ -214,6 +218,7 @@ static ONScripter::FuncLUT func_lut[] = {
     {"linepage",		&ONScripter::linepageCommand},
     {"len",				&ONScripter::lenCommand},
     {"ld",				&ONScripter::ldCommand},
+    {"layermessage",	&ONScripter::layermessageCommand},
     {"labellog",		&ONScripter::labellogCommand},
 
     {"kinsoku",			&ONScripter::kinsokuCommand},
@@ -265,6 +270,8 @@ static ONScripter::FuncLUT func_lut[] = {
     {"getmp3vol",		&ONScripter::getmp3volCommand},
     {"getmousepos",		&ONScripter::getmouseposCommand},
     {"getmouseover",	&ONScripter::getmouseoverCommand},
+    {"getmclick",		&ONScripter::getmclickCommand},
+    {"getlogtext",		&ONScripter::getlogCommand},
     {"getlog",			&ONScripter::getlogCommand},
     {"getinsert",		&ONScripter::getinsertCommand},
     {"getfunction",		&ONScripter::getfunctionCommand},
@@ -363,7 +370,7 @@ static ONScripter::FuncLUT func_lut[] = {
     {"bgcopy",			&ONScripter::bgcopyCommand},
     {"bg",				&ONScripter::bgCommand},
     {"bexec",			&ONScripter::btnwaitCommand},
-    {"bdown",			&ONScripter::btndownCommand},
+    {"bdown",			&ONScripter::bdownCommand},
     {"bdef",			&ONScripter::exbtnCommand},
     {"bcursor",			&ONScripter::getcursorCommand},
     {"bclear",			&ONScripter::btndefCommand},
@@ -371,6 +378,7 @@ static ONScripter::FuncLUT func_lut[] = {
     {"bar",				&ONScripter::barCommand},
 
     {"avi",				&ONScripter::aviCommand},
+    {"autosaveoff",		&ONScripter::autosaveoffCommand},
     {"automode_time",	&ONScripter::automode_timeCommand},
     {"automode",		&ONScripter::mode_extCommand},
     {"autoclick",		&ONScripter::autoclickCommand},

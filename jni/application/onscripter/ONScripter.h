@@ -2,7 +2,7 @@
  * 
  *  ONScripter.h - Execution block parser of ONScripter
  *
- *  Copyright (c) 2001-2014 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2016 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -31,6 +31,9 @@
 #include <SDL_image.h>
 #include <SDL_ttf.h>
 #include <SDL_mixer.h>
+#if defined(USE_SMPEG)
+#include <smpeg.h>
+#endif  
 
 #ifdef ANDROID
 #include <android/log.h>
@@ -44,6 +47,7 @@
 
 #define MAX_SPRITE_NUM 1000
 #define MAX_SPRITE2_NUM 256
+#define MAX_TEXTURE_NUM 16
 #define MAX_PARAM_NUM 100
 #define MAX_EFFECT_NUM 256
 
@@ -63,6 +67,14 @@ class ONScripter : public ScriptParser
 public:
     typedef AnimationInfo::ONSBuf ONSBuf;
     
+    struct ButtonState{
+        unsigned int event_type;
+        unsigned char event_button;
+        int x, y, button;
+        char str[16];
+        bool down_flag;
+    };
+        
     ONScripter();
     ~ONScripter();
 
@@ -150,12 +162,13 @@ public:
     void setKeyEXE(const char *path);
     int  getWidth(){ return screen_width;};
     int  getHeight(){return screen_height;};
-    const char* getCurrentButtonStr(){return current_button_state.str;};
+    ButtonState &getCurrentButtonState(){return current_button_state;};
     int  getSkip(){return automode_flag?2:((skip_mode&SKIP_NORMAL)?1:0);};
 #ifdef ANDROID
     void setMenuLanguage(const char* languageStr);
 #endif
-        
+    AnimationInfo *getSMPEGInfo(){return smpeg_info;};
+    
     int  openScript();
     int  init();
 
@@ -189,6 +202,7 @@ public:
     int textonCommand();
     int textoffCommand();
     int texthideCommand();
+    int textcolorCommand();
     int textclearCommand();
     int texecCommand();
     int tateyokoCommand();
@@ -211,6 +225,7 @@ public:
     int setcursorCommand();
     int selectCommand();
     int savetimeCommand();
+    int savepointCommand();
     int saveonCommand();
     int saveoffCommand();
     int savegameCommand();
@@ -232,6 +247,7 @@ public:
     int okcancelboxCommand();
     int ofscopyCommand();
     int negaCommand();
+    int nextcselCommand();
     int mspCommand();
     int mpegplayCommand();
     int mp3volCommand();
@@ -257,6 +273,7 @@ public:
     int locateCommand();
     int loadgameCommand();
     int ldCommand();
+    int layermessageCommand();
     int kinsokuCommand();
     int jumpfCommand();
     int jumpbCommand();
@@ -288,6 +305,7 @@ public:
     int getmp3volCommand();
     int getmouseposCommand();
     int getmouseoverCommand();
+    int getmclickCommand();
     int getlogCommand();
     int getinsertCommand();
     int getfunctionCommand();
@@ -339,6 +357,7 @@ public:
     int bltCommand();
     int bgcopyCommand();
     int bgCommand();
+    int bdownCommand();
     int barclearCommand();
     int barCommand();
     int aviCommand();
@@ -353,6 +372,16 @@ public:
     void sendException(ScriptException& exception);
 #endif
 
+    void NSDCallCommand(int texnum, const char *str1, int proc, const char *str2);
+    void NSDDeleteCommand(int texnum);
+    void NSDLoadCommand(int texnum, const char *str);
+    void NSDPresentRectCommand(int x1, int y1, int x2, int y2);
+    void NSDSp2Command(int texnum, int dcx, int dcy, int sx, int sy, int w, int h,
+                       int xs, int ys, int rot, int alpha);
+    void NSDSetSpriteCommand(int spnum, int texnum, const char *tag);
+
+    void stopSMPEG();
+    
 private:
     // ----------------------------------------
     // global variables and methods
@@ -389,12 +418,7 @@ private:
 #endif
 
     // variables relevant to button
-    struct ButtonState{
-        int x, y, button;
-        char str[16];
-        bool down_flag;
-    } current_button_state, last_mouse_state;
-
+    ButtonState current_button_state, last_mouse_state;
     ButtonLink root_button_link, *current_button_link, exbtn_d_button_link;
     bool is_exbtn_enabled;
 
@@ -413,6 +437,7 @@ private:
     bool gettab_flag;
     bool getpageup_flag;
     bool getpagedown_flag;
+    bool getmclick_flag;
     bool getinsert_flag;
     bool getfunction_flag;
     bool getenter_flag;
@@ -448,17 +473,19 @@ private:
     int  shortcut_mouse_line;
 
     void initSDL();
-    void openAudio();
+    void openAudio(int freq=-1);
     void reset(); // called on definereset
     void resetSub(); // called on reset
     void resetSentenceFont();
     void flush( int refresh_mode, SDL_Rect *rect=NULL, bool clear_dirty_flag=true, bool direct_flag=false );
     void flushDirect( SDL_Rect &rect, int refresh_mode );
+    void flushDirectYUV(SDL_Overlay *overlay);
     void mouseOverCheck( int x, int y );
 public:
     void executeLabel();
     void runScript();
     AnimationInfo *getSpriteInfo(int no){ return &sprite_info[no]; };
+    AnimationInfo *getSprite2Info(int no){ return &sprite2_info[no]; };
 private:
     int  parseLine();
     void deleteButtonLink();
@@ -505,7 +532,6 @@ private:
         }
     }
 
-    void playVideoAndroid(const char *filename, bool click_flag, bool loop_flag);
     void sendUserMessage(MessageType_t type);
     void sendLoadFileEvent(char* filepath);
 #endif
@@ -523,6 +549,7 @@ private:
     AnimationInfo btndef_info, bg_info, cursor_info[2];
     AnimationInfo tachi_info[3]; // 0 ... left, 1 ... center, 2 ... right
     AnimationInfo *sprite_info, *sprite2_info;
+    AnimationInfo *texture_info;
     AnimationInfo *bar_info[MAX_PARAM_NUM], *prnum_info[MAX_PARAM_NUM];
     AnimationInfo lookback_info[4];
     AnimationInfo dialog_info;
@@ -533,8 +560,7 @@ private:
     bool show_dialog_flag;
     
     int  calcDurationToNextAnimation();
-    void stepAnimation(int t);
-    void proceedAnimation();
+    void proceedAnimation(int current_time);
     void setupAnimationInfo(AnimationInfo *anim, FontInfo *info=NULL, bool single_line=false, ScriptDecoder* decoder=NULL);
     void parseTaggedString(AnimationInfo *anim );
     void drawTaggedSurface(SDL_Surface *dst_surface, AnimationInfo *anim, SDL_Rect &clip);
@@ -579,7 +605,7 @@ private:
            EDIT_SE_VOLUME_MODE      = 6
     };
     
-    int  remaining_time;
+    int  next_time;
     int  variable_edit_mode;
     int  variable_edit_index;
     int  variable_edit_num;
@@ -592,7 +618,9 @@ private:
     void flushEvent();
     void removeEvent(int type);
     void removeBGMFadeEvent();
+public:
     void waitEventSub(int count);
+private:
     bool waitEvent(int count);
     bool trapHandler();
     bool mouseMoveEvent( SDL_MouseMotionEvent *event );
@@ -602,7 +630,7 @@ private:
     bool keyDownEvent( SDL_KeyboardEvent *event );
     void keyUpEvent( SDL_KeyboardEvent *event );
     bool keyPressEvent( SDL_KeyboardEvent *event );
-    void timerEvent();
+    void timerEvent(bool init_flag);
     void runEventLoop();
 
     // ----------------------------------------
@@ -611,7 +639,8 @@ private:
     char *readSaveStrFromFile( int no );
     int  loadSaveFile( int no );
     void saveMagicNumber( bool output_flag );
-    int  saveSaveFile( bool write_to_disk, int no=0, const char *savestr=NULL );
+    void storeSaveFile();
+    int  writeSaveFile( int no=0, const char *savestr=NULL );
 
     int  loadSaveFile2( int file_version );
     void saveSaveFile2( bool output_flag );
@@ -658,8 +687,8 @@ private:
     unsigned char *resize_buffer;
     size_t resize_buffer_size;
 
-    SDL_Surface *loadImage(char *filename, bool *has_alpha=NULL, int *location=NULL);
-    SDL_Surface *createRectangleSurface(char *filename, bool *has_alpha);
+    SDL_Surface *loadImage(char *filename, bool *has_alpha=NULL, int *location=NULL, unsigned char *alpha=NULL);
+    SDL_Surface *createRectangleSurface(char *filename, bool *has_alpha, unsigned char *alpha=NULL);
     SDL_Surface *createSurfaceFromFile(char *filename,bool *has_alpha, int *location);
 
     int  resizeSurface( SDL_Surface *src, SDL_Surface *dst );
@@ -743,6 +772,7 @@ private:
     Uint32 mp3fadein_duration;
     Uint32 mp3fadeout_duration_internal;
     Uint32 mp3fadein_duration_internal;
+    char *fadeout_music_file_name;
     Mix_Music *music_info;
     char *loop_bgm_name[2];
     
@@ -750,6 +780,14 @@ private:
 
     char *midi_cmd;
 
+    unsigned char *layer_smpeg_buffer;
+    bool layer_smpeg_loop_flag;
+    AnimationInfo *smpeg_info;
+#if defined(USE_SMPEG)
+    SMPEG* layer_smpeg_sample;
+    SMPEG_Filter layer_smpeg_filter;
+#endif
+    
     int playSound(const char *filename, int format, bool loop_flag, int channel=0);
     void playCDAudio();
     int playWave(Mix_Chunk *chunk, int format, bool loop_flag, int channel);
@@ -806,16 +844,15 @@ private:
     int erase_text_window_mode;
     bool text_on_flag; // suppress the effect of erase_text_window_mode
     bool draw_cursor_flag;
-    int  textgosub_clickstr_state;
     int  indent_offset;
 
     void setwindowCore();
     
     void shiftHalfPixelX(SDL_Surface *surface);
     void shiftHalfPixelY(SDL_Surface *surface);
-    void drawGlyph( SDL_Surface *dst_surface, FontInfo *info, SDL_Color &color, char *text, int xy[2], bool shadow_flag, AnimationInfo *cache_info, SDL_Rect *clip, SDL_Rect &dst_rect, ScriptDecoder* decoder );
+    void drawGlyph( SDL_Surface *dst_surface, FontInfo *info, SDL_Color &color, char *text, int xy[2], AnimationInfo *cache_info, SDL_Rect *clip, SDL_Rect &dst_rect, ScriptDecoder* decoder  );
     void drawChar( char* text, FontInfo *info, bool flush_flag, bool lookback_flag, SDL_Surface *surface, AnimationInfo *cache_info, SDL_Rect *clip=NULL, ScriptDecoder* decoder=NULL );
-    void drawString( const char *str, uchar3 color, FontInfo *info, bool flush_flag, SDL_Surface *surface, SDL_Rect *rect = NULL, AnimationInfo *cache_info=NULL, bool single_line=false, ScriptDecoder* decoder=NULL );
+    void drawString( const char *str, uchar3 color, FontInfo *info, bool flush_flag, SDL_Surface *surface, SDL_Rect *rect = NULL, AnimationInfo *cache_info=NULL, bool pack_hankaku=true, bool single_line=false, ScriptDecoder* decoder=NULL );
     void restoreTextBuffer(SDL_Surface *surface = NULL);
     void enterTextDisplayMode(bool text_flag = true);
     void leaveTextDisplayMode(bool force_leave_flag = false);

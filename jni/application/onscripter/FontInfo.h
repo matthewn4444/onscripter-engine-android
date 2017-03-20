@@ -2,7 +2,7 @@
  * 
  *  FontInfo.h - Font information storage class of ONScripter
  *
- *  Copyright (c) 2001-2012 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2016 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -25,6 +25,7 @@
 #define __FONT_INFO_H__
 
 #include <SDL.h>
+#include "BaseReader.h"
 
 typedef unsigned char uchar3[3];
 

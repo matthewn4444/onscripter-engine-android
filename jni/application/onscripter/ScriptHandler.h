@@ -2,7 +2,7 @@
  * 
  *  ScriptHandler.h - Script manipulation class
  *
- *  Copyright (c) 2001-2014 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2016 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -139,9 +139,9 @@ public:
     void addStringBuffer( char ch );
     
     // function for direct manipulation of script address 
-    inline char *getCurrent(bool use_script=false){ return (use_script && internal_current_script)?internal_current_script:current_script; };
+    inline char *getCurrent(bool use_script=false){ return (use_script && is_internal_script)?last_script_context->current_script:current_script; };
     inline char *getNext(){ return next_script; };
-    inline char *getWait(){ return wait_script; };
+    inline char *getWait(){ return wait_script?wait_script:next_script; };
     void setCurrent(char *pos);
     void pushCurrent( char *pos );
     void popCurrent();
@@ -305,6 +305,18 @@ private:
         };
     };
     
+    struct ScriptContext{
+        ScriptContext *prev, *next;
+        char *current_script;
+        char *next_script;
+        int end_status;
+        VariableInfo current_variable, pushed_variable;
+        ScriptContext(){
+            prev = next = NULL;
+            current_script = next_script = NULL;
+        }
+    };
+
     int  readScript(char *path);
     int  readScriptSub(FILE *fp, char **buf, int encrypt_mode);
     void readConfiguration();
@@ -369,10 +381,8 @@ private:
     char *pushed_current_script;
     char *pushed_next_script;
 
-    char *internal_current_script;
-    char *internal_next_script;
-    int  internal_end_status;
-    VariableInfo internal_current_variable, internal_pushed_variable;
+    bool is_internal_script;
+    ScriptContext root_script_context, *last_script_context;
 
     unsigned char key_table[256];
     bool key_table_flag;

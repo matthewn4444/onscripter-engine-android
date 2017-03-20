@@ -2,7 +2,7 @@
  * 
  *  ONScripter_animation.cpp - Methods to manipulate AnimationInfo
  *
- *  Copyright (c) 2001-2014 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2016 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -28,21 +28,21 @@
 
 int ONScripter::calcDurationToNextAnimation()
 {
-    int min = -1; // minimum duration
+    int min = 0; // minimum next time
     
     for (int i=0 ; i<3 ; i++){
         AnimationInfo *anim = &tachi_info[i];
         if (anim->visible && anim->is_animatable){
-            if (min == -1 || min > anim->remaining_time)
-                min = anim->remaining_time;
+            if (min == 0 || min > anim->next_time)
+                min = anim->next_time;
         }
     }
 
     for (int i=MAX_SPRITE_NUM-1 ; i>=0 ; i--){
         AnimationInfo *anim = &sprite_info[i];
         if (anim->visible && anim->is_animatable){
-            if (min == -1 || min > anim->remaining_time)
-                min = anim->remaining_time;
+            if (min == 0 || min > anim->next_time)
+                min = anim->next_time;
         }
     }
 
@@ -55,61 +55,36 @@ int ONScripter::calcDurationToNextAnimation()
             anim = &cursor_info[1];
 
         if (anim->visible && anim->is_animatable){
-            if (min == -1 || min > anim->remaining_time)
-                min = anim->remaining_time;
+            if (min == 0 || min > anim->next_time)
+                min = anim->next_time;
         }
     }
 
 #ifdef USE_LUA
     if (lua_handler.is_animatable && !script_h.isExternalScript()){
-        if (min == -1 || min > lua_handler.remaining_time)
-            min = lua_handler.remaining_time;
+        if (min == 0 || min > lua_handler.next_time)
+            min = lua_handler.next_time;
     }
 #endif
-
-    if (min == -1) min = 0;
 
     return min;
 }
 
-void ONScripter::stepAnimation(int t)
+void ONScripter::proceedAnimation(int current_time)
 {
     for (int i=0 ; i<3 ; i++)
-        tachi_info[i].stepAnimation(t);
-        
-    for (int i=MAX_SPRITE_NUM-1 ; i>=0 ; i--)
-        sprite_info[i].stepAnimation(t);
-
-#ifdef USE_LUA
-    if (lua_handler.is_animatable && !script_h.isExternalScript())
-        lua_handler.remaining_time -= t;
-#endif
-
-    if (!textgosub_label){
-        if (clickstr_state == CLICK_WAIT)
-            cursor_info[0].stepAnimation(t);
-        else if (clickstr_state == CLICK_NEWPAGE)
-            cursor_info[1].stepAnimation(t);
-    }
-}
-
-void ONScripter::proceedAnimation()
-{
-    for (int i=0 ; i<3 ; i++)
-        if (tachi_info[i].proceedAnimation())
+        if (tachi_info[i].proceedAnimation(current_time))
             flushDirect(tachi_info[i].pos, refreshMode() | (draw_cursor_flag?REFRESH_CURSOR_MODE:0));
         
     for (int i=MAX_SPRITE_NUM-1 ; i>=0 ; i--)
-        if (sprite_info[i].proceedAnimation())
+        if (sprite_info[i].proceedAnimation(current_time))
             flushDirect(sprite_info[i].pos, refreshMode() | (draw_cursor_flag?REFRESH_CURSOR_MODE:0));
 
 #ifdef USE_LUA
     if (lua_handler.is_animatable && !script_h.isExternalScript()){
-        if (lua_handler.remaining_time == 0){
-            lua_handler.remaining_time = lua_handler.duration_time;
-
+        while(lua_handler.next_time <= current_time){
             int tmp_event_mode = event_mode;
-            int tmp_remaining_time = remaining_time;
+            int tmp_next_time = next_time;
             int tmp_string_buffer_offset = string_buffer_offset;
 
             char *current = script_h.getCurrent();
@@ -120,8 +95,14 @@ void ONScripter::proceedAnimation()
             readToken();
 
             string_buffer_offset = tmp_string_buffer_offset;
-            remaining_time = tmp_remaining_time;
+            next_time = tmp_next_time;
             event_mode = tmp_event_mode;
+
+            lua_handler.next_time += lua_handler.duration_time;
+            if (lua_handler.duration_time <= 0){
+                lua_handler.next_time = current_time;
+                break;
+            }
         }
     }
 #endif
@@ -134,7 +115,7 @@ void ONScripter::proceedAnimation()
         else if (clickstr_state == CLICK_NEWPAGE)
             anim = &cursor_info[1];
         
-        if (anim->proceedAnimation()){
+        if (anim->proceedAnimation(current_time)){
             SDL_Rect dst_rect = anim->pos;
             if (!anim->abs_flag){
                 dst_rect.x += sentence_font.x() * screen_ratio1 / screen_ratio2;
@@ -192,7 +173,7 @@ void ONScripter::setupAnimationInfo( AnimationInfo *anim, FontInfo *info, bool s
 
         SDL_Rect pos;
         if (anim->is_tight_region){
-            drawString( anim->file_name, anim->color_list[ anim->current_cell ], &f_info, false, NULL, &pos, NULL, single_line, decoder );
+            drawString( anim->file_name, anim->color_list[ anim->current_cell ], &f_info, false, NULL, &pos, NULL, true, single_line, decoder );
         }
         else{
             int xy_bak[2];
@@ -221,14 +202,14 @@ void ONScripter::setupAnimationInfo( AnimationInfo *anim, FontInfo *info, bool s
         f_info.top_xy[0] = f_info.top_xy[1] = 0;
         for ( int i=0 ; i<anim->num_of_cells ; i++ ){
             f_info.clear();
-            drawString( anim->file_name, anim->color_list[i], &f_info, false, NULL, NULL, anim, single_line, decoder );
+            drawString( anim->file_name, anim->color_list[i], &f_info, false, NULL, NULL, anim, true, single_line, decoder );
             f_info.top_xy[0] += anim->orig_pos.w;
         }
     }
     else{
         bool has_alpha;
         int location;
-        SDL_Surface *surface = loadImage( anim->file_name, &has_alpha, &location );
+        SDL_Surface *surface = loadImage( anim->file_name, &has_alpha, &location, &anim->default_alpha );
 
         SDL_Surface *surface_m = NULL;
         if (anim->trans_mode == AnimationInfo::TRANS_MASK)
@@ -402,14 +383,14 @@ void ONScripter::parseTaggedString( AnimationInfo *anim )
                 for ( i=1 ; i<anim->num_of_cells ; i++ )
                     anim->duration_list[i] = anim->duration_list[0];
             }
-            anim->remaining_time = anim->duration_list[0];
+            anim->next_time = SDL_GetTicks() + anim->duration_list[0];
 
             buffer++;
             anim->loop_mode = *buffer++ - '0'; // 3...no animation
         }
         else{
             for ( i=0 ; i<anim->num_of_cells ; i++ )
-                anim->duration_list[0] = 0;
+                anim->duration_list[i] = 0;
             anim->loop_mode = 3; // 3...no animation
         }
         if ( anim->loop_mode != 3 ) anim->is_animatable = true;

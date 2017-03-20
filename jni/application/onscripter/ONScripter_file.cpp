@@ -2,7 +2,7 @@
  *
  *  ONScripter_file.cpp - FILE I/O of ONScripter
  *
- *  Copyright (c) 2001-2014 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2016 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -252,42 +252,40 @@ void ONScripter::saveMagicNumber( bool output_flag )
     writeChar( SAVEFILE_VERSION_MINOR, output_flag );
 }
 
-int ONScripter::saveSaveFile( bool write_to_disk, int no, const char *savestr )
+void ONScripter::storeSaveFile()
 {
-    // make save data structure on memory
-    if (!write_to_disk || (saveon_flag && internal_saveon_flag)){
-        file_io_buf_ptr = 0;
-        saveMagicNumber( false );
-        saveSaveFile2( false );
-        allocFileIOBuf();
-        saveMagicNumber( true );
-        saveSaveFile2( true );
-        save_data_len = file_io_buf_ptr;
-        memcpy(save_data_buf, file_io_buf, save_data_len);
-    }
-    
-    if (write_to_disk){
-        saveAll();
+    file_io_buf_ptr = 0;
+    saveMagicNumber( false );
+    saveSaveFile2( false );
+    allocFileIOBuf();
+    saveMagicNumber( true );
+    saveSaveFile2( true );
+    save_data_len = file_io_buf_ptr;
+    memcpy(save_data_buf, file_io_buf, save_data_len);
+}
 
-        char filename[32];
-        sprintf( filename, "save%d.dat", no );
+int ONScripter::writeSaveFile( int no, const char *savestr )
+{
+    saveAll();
+
+    char filename[32];
+    sprintf( filename, "save%d.dat", no );
         
-        memcpy(file_io_buf, save_data_buf, save_data_len);
-        file_io_buf_ptr = save_data_len;
-        if (saveFileIOBuf( filename, 0, savestr )){
-            if (no > 40) {
-                loge( stderr, "can't open save file %s for writing\n", filename );
-            } else {
-                logw( stderr, "can't open save file %s for writing\n", filename );
-            }
-            return -1;
+    memcpy(file_io_buf, save_data_buf, save_data_len);
+    file_io_buf_ptr = save_data_len;
+    if (saveFileIOBuf( filename, 0, savestr )){
+        if (no > 40) {
+            loge( stderr, "can't open save file %s for writing\n", filename );
+        } else {
+            logw( stderr, "can't open save file %s for writing\n", filename );
         }
-
-        size_t magic_len = strlen(SAVEFILE_MAGIC_NUMBER)+2;
-        sprintf( filename, RELATIVEPATH "sav%csave%d.dat", DELIMITER, no );
-        if (saveFileIOBuf( filename, magic_len, savestr ))
-            logw( stderr, "can't open save file %s for writing (not an error)\n", filename );
+        return -1;
     }
 
+    size_t magic_len = strlen(SAVEFILE_MAGIC_NUMBER)+2;
+    sprintf( filename, RELATIVEPATH "sav%csave%d.dat", DELIMITER, no );
+    if (saveFileIOBuf( filename, magic_len, savestr ))
+        logw( stderr, "can't open save file %s for writing (not an error)\n", filename );
+  
     return 0;
 }

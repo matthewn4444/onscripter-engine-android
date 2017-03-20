@@ -2,7 +2,7 @@
  * 
  *  nsadec.cpp - NSA archive decoder
  *
- *  Copyright (c) 2001-2014 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2015 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -45,14 +45,19 @@ int main( int argc, char **argv )
 
     if ( argc >= 2 ){
         while ( argc > 2 ){
-            if      ( !strcmp( argv[1], "-ns2" ) ) nsa_offset = 1;
-            else if ( !strcmp( argv[1], "-ns3" ) ) nsa_offset = 2;
+            if      ( !strcmp( argv[1], "-ns2" ) ) 
+                archive_type = BaseReader::ARCHIVE_TYPE_NS2;
+            else if ( !strcmp( argv[1], "-offset") ){
+                nsa_offset = atoi(argv[2]);
+                argc--;
+                argv++;
+            }
             argc--;
             argv++;
         }
     }
     if ( argc != 2 ){
-        fprintf( stderr, "Usage: nsadec [-ns2] [-ns3] arc_file\n");
+        fprintf( stderr, "Usage: nsadec [-offset ##] [-ns2] arc_file\n");
         exit(-1);
     }
     cNR.openForConvert( argv[1], archive_type, nsa_offset );

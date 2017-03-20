@@ -2,7 +2,7 @@
  * 
  *  onscripter_main.cpp -- main function of ONScripter
  *
- *  Copyright (c) 2001-2014 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2016 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -104,7 +104,7 @@ void optionHelp()
 void optionVersion()
 {
     printf("Written by Ogapee <ogapee@aqua.dti2.ne.jp>\n\n");
-    printf("Copyright (c) 2001-2014 Ogapee.\n");
+    printf("Copyright (c) 2001-2016 Ogapee.\n");
     printf("This is free software; see the source for copying conditions.\n");
     exit(0);
 }
@@ -112,6 +112,17 @@ void optionVersion()
 #ifdef ANDROID
 extern "C"
 {
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
+{
+    ONScripter::JNI_VM = vm;
+    return JNI_VERSION_1_2;
+};
+
+JNIEXPORT void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved)
+{
+    ONScripter::JNI_VM = vm;
+};
+
 JNIEXPORT jint JNICALL 
 JAVA_EXPORT_NAME(DemoRenderer_nativeGetWidth) ( JNIEnv* env, jobject thiz )
 {
@@ -143,16 +154,17 @@ JNIEXPORT jint JNICALL JAVA_EXPORT_NAME(ONScripterView_nativeGetDialogFontSize) 
     return ons ? ons->getSentenceFontSize() : 0;
 }
 
-JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
+void playVideoAndroid(const char *filename, bool click_flag, bool loop_flag)
 {
-    ONScripter::JNI_VM = vm;
-    return JNI_VERSION_1_2;
-};
-
-JNIEXPORT void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved)
-{
-    ONScripter::JNI_VM = vm;
-};
+    JNIWrapper wrapper(ONScripter::JNI_VM);
+    jchar *jc = new jchar[strlen(filename)];
+    for (int i=0 ; i<strlen(filename) ; i++)
+        jc[i] = filename[i];
+    jcharArray jca = wrapper.env->NewCharArray(strlen(filename));
+    wrapper.env->SetCharArrayRegion(jca, 0, strlen(filename), jc);
+    wrapper.env->CallVoidMethod( ONScripter::JavaONScripter, ONScripter::JavaPlayVideo, jca, click_flag, loop_flag );
+    delete[] jc;
+}
 }
 #endif
 
@@ -231,6 +243,8 @@ int main( int argc, char **argv )
 
     // output files are stored under /Documents
     dpath = [[dpaths objectAtIndex:0] stringByAppendingPathComponent:[cpath lastPathComponent]];
+    NSFileManager *fm = [NSFileManager defaultManager];
+    [fm createDirectoryAtPath:dpath withIntermediateDirectories: YES attributes: nil error:nil];
     strcpy(filename, [dpath UTF8String]);
     ons->setSaveDir(filename);
 #endif

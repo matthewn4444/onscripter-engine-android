@@ -2,7 +2,7 @@
  * 
  *  ONScripter_event.cpp - Event handler of ONScripter
  *
- *  Copyright (c) 2001-2014 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2016 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -63,9 +63,9 @@ extern "C" Uint32 SDLCALL timerCallback( Uint32 interval, void *param )
     SDL_RemoveTimer( timer_id );
     timer_id = NULL;
 
-	SDL_Event event;
-	event.type = ONS_TIMER_EVENT;
-	SDL_PushEvent( &event );
+    SDL_Event event;
+    event.type = ONS_TIMER_EVENT;
+    SDL_PushEvent( &event );
 
     return 0;
 }
@@ -266,7 +266,7 @@ void ONScripter::flushEventSub( SDL_Event &event )
             Mix_VolumeMusic( tmp * MIX_MAX_VOLUME / 100 );
         } else {
             char *ext = NULL;
-            if (music_file_name) ext = strrchr(music_file_name, '.');
+            if (fadeout_music_file_name) ext = strrchr(fadeout_music_file_name, '.');
             if (ext && (strcmp(ext+1, "OGG") && strcmp(ext+1, "ogg"))){
                 // set break event to return to script processing when playing music other than ogg
                 SDL_Event event;
@@ -357,8 +357,8 @@ void ONScripter::removeBGMFadeEvent()
 
 void ONScripter::waitEventSub(int count)
 {
-    remaining_time = count;
-    timerEvent();
+    next_time = count;
+    timerEvent(true);
 
     runEventLoop();
     removeEvent( ONS_BREAK_EVENT );
@@ -366,6 +366,8 @@ void ONScripter::waitEventSub(int count)
 
 bool ONScripter::waitEvent( int count )
 {
+    if (count > 0) count += SDL_GetTicks();
+    
     while(1){
         waitEventSub( count );
         if ( system_menu_mode == SYSTEM_NULL ) break;
@@ -472,10 +474,27 @@ bool ONScripter::mousePressEvent( SDL_MouseButtonEvent *event )
     else if ( event->button == SDL_BUTTON_LEFT &&
               ( event->type == SDL_MOUSEBUTTONUP || btndown_flag ) ){
         current_button_state.button = current_over_button;
-        if (current_over_button == 0)
+        if (current_over_button == -1){
+            if (!bexec_flag) current_button_state.button = 0;
             sprintf(current_button_state.str, "LCLICK");
-        else
+        }
+        else{
             sprintf(current_button_state.str, "S%d", current_over_button);
+            if (bexec_flag && current_button_link){
+                ButtonLink *cbl = current_button_link;
+                if ( current_button_link->exbtn_ctl[2] ){
+                    SDL_Rect check_src_rect = cbl->image_rect;
+                    SDL_Rect check_dst_rect = {0, 0, 0, 0};
+                    decodeExbtnControl( cbl->exbtn_ctl[2], &check_src_rect, &check_dst_rect );
+                }
+                else{
+                    sprite_info[ cbl->sprite_no ].visible = true;
+                    sprite_info[ cbl->sprite_no ].setCell(2);
+                    dirty_rect.add( cbl->image_rect );
+                }
+                flush( refreshMode() );
+            }
+        }
             
         if ( event->type == SDL_MOUSEBUTTONDOWN )
             current_button_state.down_flag = true;
@@ -502,6 +521,10 @@ bool ONScripter::mousePressEvent( SDL_MouseButtonEvent *event )
         sprintf(current_button_state.str, "WHEELDOWN");
     }
 #endif
+    else if ( getmclick_flag && event->button == SDL_BUTTON_MIDDLE ){
+        current_button_state.button = -70;
+        sprintf(current_button_state.str, "MCLICK");
+    }
     else return false;
 
     if ( event_mode & (WAIT_INPUT_MODE | WAIT_BUTTON_MODE) ){
@@ -691,6 +714,23 @@ void ONScripter::shiftCursorOnButton( int diff )
 
 bool ONScripter::keyDownEvent( SDL_KeyboardEvent *event )
 {
+    if (event->keysym.sym == SDLK_ESCAPE){
+        current_button_state.event_type = SDL_MOUSEBUTTONDOWN;
+        current_button_state.event_button = SDL_BUTTON_RIGHT;
+    }
+    else if (event->keysym.sym == SDLK_KP_ENTER){
+        current_button_state.event_type = SDL_MOUSEBUTTONDOWN;
+        current_button_state.event_button = SDL_BUTTON_LEFT;
+    }
+    else if (event->keysym.sym == SDLK_LEFT){
+        current_button_state.event_type = SDL_MOUSEBUTTONDOWN;
+        current_button_state.event_button = SDL_BUTTON_WHEELUP;
+    }
+    else if (event->keysym.sym == SDLK_RIGHT){
+        current_button_state.event_type = SDL_MOUSEBUTTONDOWN;
+        current_button_state.event_button = SDL_BUTTON_WHEELDOWN;
+    }
+
     switch ( event->keysym.sym ) {
       case SDLK_RCTRL:
         ctrl_pressed_status  |= 0x01;
@@ -722,6 +762,23 @@ bool ONScripter::keyDownEvent( SDL_KeyboardEvent *event )
 
 void ONScripter::keyUpEvent( SDL_KeyboardEvent *event )
 {
+    if (event->keysym.sym == SDLK_ESCAPE){
+        current_button_state.event_type = SDL_MOUSEBUTTONUP;
+        current_button_state.event_button = SDL_BUTTON_RIGHT;
+    }
+    else if (event->keysym.sym == SDLK_KP_ENTER){
+        current_button_state.event_type = SDL_MOUSEBUTTONUP;
+        current_button_state.event_button = SDL_BUTTON_LEFT;
+    }
+    else if (event->keysym.sym == SDLK_LEFT){
+        current_button_state.event_type = SDL_MOUSEBUTTONUP;
+        current_button_state.event_button = SDL_BUTTON_WHEELUP;
+    }
+    else if (event->keysym.sym == SDLK_RIGHT){
+        current_button_state.event_type = SDL_MOUSEBUTTONUP;
+        current_button_state.event_button = SDL_BUTTON_WHEELDOWN;
+    }
+
     switch ( event->keysym.sym ) {
       case SDLK_RCTRL:
         ctrl_pressed_status  &= ~0x01;
@@ -791,15 +848,33 @@ bool ONScripter::keyPressEvent( SDL_KeyboardEvent *event )
              event->keysym.sym == SDLK_KP_ENTER ||
              (spclclk_flag && event->keysym.sym == SDLK_SPACE) ){
             current_button_state.button = current_over_button;
-            if (current_over_button == 0)
+            if (current_over_button == -1){
+                if (!bexec_flag) current_button_state.button = 0;
                 sprintf(current_button_state.str, "RETURN");
-            else
+            }
+            else{
                 sprintf(current_button_state.str, "S%d", current_over_button);
+                if (bexec_flag && current_button_link){
+                    ButtonLink *cbl = current_button_link;
+                    if ( current_button_link->exbtn_ctl[2] ){
+                        SDL_Rect check_src_rect = cbl->image_rect;
+                        SDL_Rect check_dst_rect = {0, 0, 0, 0};
+                        decodeExbtnControl( cbl->exbtn_ctl[2], &check_src_rect, &check_dst_rect );
+                    }
+                    else{
+                        sprite_info[ cbl->sprite_no ].visible = true;
+                        sprite_info[ cbl->sprite_no ].setCell(2);
+                        dirty_rect.add( cbl->image_rect );
+                    }
+                    flush( refreshMode() );
+                }
+            }
             if ( event->type == SDL_KEYDOWN )
                 current_button_state.down_flag = true;
         }
         else{
-            current_button_state.button = 0;
+            current_button_state.button = -1;
+            if (!bexec_flag) current_button_state.button = 0;
             sprintf(current_button_state.str, "SPACE");
         }
         playClickVoice();
@@ -834,6 +909,7 @@ bool ONScripter::keyPressEvent( SDL_KeyboardEvent *event )
                   (usewheel_flag && !getcursor_flag && event_mode & WAIT_BUTTON_MODE) || 
                   system_menu_mode == SYSTEM_LOOKBACK)){
             current_button_state.button = -2;
+            sprintf(current_button_state.str, "WHEELUP");
             if (event_mode & WAIT_TEXT_MODE) system_menu_mode = SYSTEM_LOOKBACK;
         }
         else if (((!getcursor_flag && event->keysym.sym == SDLK_RIGHT) ||
@@ -845,6 +921,7 @@ bool ONScripter::keyPressEvent( SDL_KeyboardEvent *event )
                 current_button_state.button = 0;
             else
                 current_button_state.button = -3;
+            sprintf(current_button_state.str, "WHEELDOWN");
         }
         else if (((!getcursor_flag && event->keysym.sym == SDLK_UP) ||
                   event->keysym.sym == SDLK_k ||
@@ -965,7 +1042,7 @@ bool ONScripter::keyPressEvent( SDL_KeyboardEvent *event )
                 return true;
             }
         }
-        else if ( event->keysym.sym == SDLK_a && mode_ext_flag && !automode_flag ){
+        else if ( event->keysym.sym == SDLK_a && !automode_flag ){
             setInternalAutoMode(true);
             setInternalSkipMode(false);
             logv("change to automode\n");
@@ -1026,9 +1103,17 @@ bool ONScripter::keyPressEvent( SDL_KeyboardEvent *event )
     return false;
 }
 
-void ONScripter::timerEvent()
+void ONScripter::timerEvent(bool init_flag)
 {
-    if (remaining_time == 0){
+    int current_time = SDL_GetTicks();
+    int remaining_time = next_time;
+    if (next_time > 0){
+        remaining_time -= current_time;
+        if (remaining_time < 0) remaining_time = 0;
+    }
+
+    // trick to increase frame rate
+    if (remaining_time == 0 && !init_flag){
         SDL_Event event;
         event.type = ONS_BREAK_EVENT;
         SDL_PushEvent(&event);
@@ -1037,26 +1122,29 @@ void ONScripter::timerEvent()
     
     int duration = 0;
     if (event_mode & WAIT_TIMER_MODE){
-        proceedAnimation();
-        duration = calcDurationToNextAnimation();
+        proceedAnimation(current_time);
+        duration = calcDurationToNextAnimation() - current_time;
+        if (duration < 0) duration = 0;
     }
-            
+
+    // trick to increase frame rate
+    if (remaining_time == 0 && init_flag){
+        SDL_Event event;
+        event.type = ONS_BREAK_EVENT;
+        SDL_PushEvent(&event);
+        return;
+    }
+    
     if (duration > 0){
-        if (remaining_time > duration){
-            remaining_time -= duration;
-        }
-        else if (remaining_time > 0){
+        if (duration > remaining_time && remaining_time > 0)
             duration = remaining_time;
-            remaining_time = 0;
-        }
-        stepAnimation(duration);
+
         if (timer_id) SDL_RemoveTimer(timer_id);
         timer_id = SDL_AddTimer(duration, timerCallback, NULL);
     }
     else if (remaining_time > 0){
         if (timer_id) SDL_RemoveTimer(timer_id);
         timer_id = SDL_AddTimer(remaining_time, timerCallback, NULL);
-        remaining_time = 0;
     }
 }
 
@@ -1065,6 +1153,11 @@ void ONScripter::runEventLoop()
     SDL_Event event, tmp_event;
 
     while ( SDL_WaitEvent(&event) ) {
+#if defined(USE_SMPEG)
+        // required to repeat the movie
+        if (layer_smpeg_sample)
+            SMPEG_status(layer_smpeg_sample);
+#endif    
         bool ret = false;
         // ignore continous SDL_MOUSEMOTION
         while (event.type == SDL_MOUSEMOTION){
@@ -1164,8 +1257,12 @@ void ONScripter::runEventLoop()
             break;
             
           case SDL_MOUSEBUTTONDOWN:
+            current_button_state.event_type = event.type;
+            current_button_state.event_button = event.button.button;
             if ( !btndown_flag ) break;
           case SDL_MOUSEBUTTONUP:
+            current_button_state.event_type = event.type;
+            current_button_state.event_button = event.button.button;
             ret = mousePressEvent( &event.button );
             if (ret) return;
             break;
@@ -1215,7 +1312,7 @@ void ONScripter::runEventLoop()
           }
 
           case ONS_TIMER_EVENT:
-            timerEvent();
+            timerEvent(false);
             break;
 
           case ONS_MUSIC_EVENT:
@@ -1235,8 +1332,8 @@ void ONScripter::runEventLoop()
 
           case ONS_BREAK_EVENT:
             if (event_mode & WAIT_VOICE_MODE && wave_sample[0]){
-                remaining_time = -1;
-                timerEvent();
+                next_time = -1;
+                timerEvent(false);
                 break;
             }
 
@@ -1261,10 +1358,18 @@ void ONScripter::runEventLoop()
             return;
             
           case SDL_ACTIVEEVENT:
-            if ( !event.active.gain ) break;
+            if ( !event.active.gain ){
+                // the mouse cursor leaves the window
+                SDL_MouseMotionEvent mevent;
+                mevent.x = screen_device_width;
+                mevent.y = screen_device_height;
+                mouseMoveEvent( &mevent );
+                break;
+            }
 #ifdef ANDROID
             if (event.active.state == SDL_APPACTIVE){
                 screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, DEFAULT_VIDEO_SURFACE_FLAG );
+                SDL_SetSurfaceBlendMode(screen_surface, SDL_BLENDMODE_NONE);
                 repaintCommand();
                 break;
             }

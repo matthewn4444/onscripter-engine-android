@@ -262,7 +262,9 @@ public class ONScripterView extends DemoGLSurfaceView {
     }
 
     /* Called from ONScripter.h */
+    @Override
     protected void onFinish() {
+        super.onFinish();
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {

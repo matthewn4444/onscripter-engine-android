@@ -1,5 +1,12 @@
+#include <stdio.h>
 /* sjis 0x8140 - 0xfcfc */
 static unsigned short *sjis_2_utf16;
+
+static unsigned short *utf16_2_sjis_00;
+static unsigned short *utf16_2_sjis_1e;
+static unsigned short *utf16_2_sjis_20;
+static unsigned short *utf16_2_sjis_f9;
+static unsigned short *utf16_2_sjis_ff;
 
 static unsigned short sjis_2_utf16_org[][2] = {
 	{0x8140,0x3000},
@@ -11386,8 +11393,27 @@ void initSJIS2UTF16()
 
     sjis_2_utf16 = new unsigned short[0xfcfc - 0x8140 + 1];
 
+    utf16_2_sjis_00 = new unsigned short[0x0500];
+    utf16_2_sjis_1e = new unsigned short[0x0200];
+    utf16_2_sjis_20 = new unsigned short[0x8000];
+    utf16_2_sjis_f9 = new unsigned short[0x0200];
+    utf16_2_sjis_ff = new unsigned short[0x0100];
+
     while( sjis_2_utf16_org[i][0] ){
-        sjis_2_utf16[sjis_2_utf16_org[i][0] - 0x8140] = sjis_2_utf16_org[i][1];
+        unsigned short sjis  = sjis_2_utf16_org[i][0];
+        unsigned short utf16 = sjis_2_utf16_org[i][1];
+        sjis_2_utf16[sjis - 0x8140] = utf16;
+
+        if (utf16 < 0x1000) // 0x0000-0x04ff
+            utf16_2_sjis_00[utf16] = sjis;
+        else if (utf16 < 0x2000) // 0x1e00-0x1fff
+            utf16_2_sjis_1e[utf16-0x1e00] = sjis;
+        else if (utf16 < 0xa000) // 0x2000-0x9fff
+             utf16_2_sjis_20[utf16-0x2000] = sjis;
+        else if (utf16 < 0xfb00) // 0xf900-0xfaff
+            utf16_2_sjis_f9[utf16-0xf900] = sjis;
+        else // 0xff00-0xffff
+            utf16_2_sjis_ff[utf16-0xff00] = sjis;
         i++;
     }
 }
@@ -11395,6 +11421,21 @@ void initSJIS2UTF16()
 unsigned short convSJIS2UTF16( unsigned short in )
 {
     return sjis_2_utf16[ in - 0x8140 ];
+}
+
+unsigned short convUTF162SJIS( unsigned short in )
+{
+    if (in < 0x1000) // 0x0000-0x04ff
+        return utf16_2_sjis_00[in];
+    else if (in < 0x2000) // 0x1e00-0x1fff
+        return utf16_2_sjis_1e[in-0x1e00];
+    else if (in < 0xa000) // 0x2000-0x9fff
+        return utf16_2_sjis_20[in-0x2000];
+    else if (in < 0xfb00) // 0xf900-0xfaff
+        return utf16_2_sjis_f9[in-0xf900];
+
+    // 0xff00-0xffff
+    return utf16_2_sjis_ff[in-0xff00];
 }
 
 int convUTF16ToUTF8( unsigned char dst[4], unsigned short src )
@@ -11423,4 +11464,26 @@ int convUTF16ToUTF8( unsigned char dst[4], unsigned short src )
     dst[1] = 0;
 
     return 1;
+}
+
+unsigned short convUTF8ToUTF16( const char **src)
+{
+    unsigned short utf16=0;
+    
+    if (**src & 0x80){
+        if (**src & 0x20){
+            utf16 |= ((unsigned short)((*(*src)++)&0x0f)) << 12;
+            utf16 |= ((unsigned short)((*(*src)++)&0x3f)) << 6;
+            utf16 |= ((unsigned short)((*(*src)++)&0x3f));
+        }
+        else{
+            utf16 |= ((unsigned short)((*(*src)++)&0x1f)) << 6;
+            utf16 |=  (unsigned short)((*(*src)++)&0x3f);
+        }
+    }
+    else{
+        utf16 |= (unsigned short)(*(*src)++);
+    }
+    
+    return utf16;
 }

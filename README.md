@@ -106,6 +106,7 @@ This is a very simple example of enabling ONScripter in your app with events.
                 @Override
                 public void onGameFinished() {
                     // Game ended
+                    finish();
                 }
             });
 

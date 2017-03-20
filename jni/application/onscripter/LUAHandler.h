@@ -2,7 +2,7 @@
  *
  *  LUAHandler.h - LUA handler for ONScripter
  *
- *  Copyright (c) 2001-2013 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2015 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -47,21 +47,24 @@ public:
     LUAHandler();
     ~LUAHandler();
 
-    void init(ONScripter *ons, ScriptHandler *sh);
+    void init(ONScripter *ons, ScriptHandler *sh, 
+              int screen_ratio1, int screen_ratio2);
+    void loadInitScript();
     void addCallback(const char *label);
 
-    int  callFunction(bool is_callback, const char *cmd);
+    int  callFunction(bool is_callback, const char *cmd, void *data=NULL);
 
     bool isCallbackEnabled(int val);
 
     bool is_animatable;
     int duration_time;
-    int remaining_time;
+    int next_time;
     
     //private:
     ONScripter *ons;
     lua_State *state;
     ScriptHandler *sh;
+    int screen_ratio1, screen_ratio2;
 
     char error_str[256];
     

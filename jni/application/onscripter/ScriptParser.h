@@ -2,7 +2,7 @@
  * 
  *  ScriptParser.h - Define block parser of ONScripter
  *
- *  Copyright (c) 2001-2013 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2016 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -56,6 +56,8 @@
 #define DEFAULT_START_KINSOKU "」』）］｝、。，．・？！ヽヾゝゞ々ー"
 #define DEFAULT_END_KINSOKU   "「『（［｛"
 
+#define MAX_LAYER_NUM 32
+
 typedef unsigned char uchar3[3];
 
 class ScriptParser
@@ -68,6 +70,7 @@ public:
     int  openScript();
     void setCurrentLabel( const char *label );
     void gosubReal( const char *label, char *next_script, bool textgosub_flag=false );
+    int getStringBufferOffset(){return string_buffer_offset;};
 
 #ifdef ANDROID
     FILE *fopen(const char *path, const char *mode, bool use_save_dir=false, bool use_root_write_dir=false);
@@ -94,6 +97,7 @@ public:
     int skipCommand();
     int sinCommand();
     int shadedistanceCommand();
+    int setlayerCommand();
     int setkinsokuCommand();
     int selectvoiceCommand();
     int selectcolorCommand();
@@ -163,6 +167,7 @@ public:
     int clickvoiceCommand();
     int clickstrCommand();
     int breakCommand();
+    int autosaveoffCommand();
     int atoiCommand();
     int arcCommand();
     int addkinsokuCommand();
@@ -196,13 +201,11 @@ protected:
         char *next_script; // used in gosub and for
         int  var_no, to, step; // used in for
         bool textgosub_flag; // used in textgosub and pretextgosub
-        char *wait_script; // used in gosub with textgosub
 
         NestInfo(){
             previous = next = NULL;
             nest_mode = LABEL;
             textgosub_flag = false;
-            wait_script = NULL;
         };
     } last_tilde;
 
@@ -245,6 +248,7 @@ protected:
     bool filelog_flag;
     bool kidokuskip_flag;
     bool kidokumode_flag;
+    bool autosaveoff_flag;
 
     int z_order;
     bool rmode_flag;
@@ -285,6 +289,19 @@ protected:
     
     void readToken();
 
+    /* ---------------------------------------- */
+    /* Layer related variables */
+    struct LayerInfo{
+        int sprite_num;
+        int duration;
+        char *str;
+        LayerInfo(){
+            sprite_num = 0;
+            duration = 0;
+            str = NULL;
+        };
+    } layer_info[MAX_LAYER_NUM];
+    
     /* ---------------------------------------- */
     /* Effect related variables */
     struct EffectLink{
@@ -511,8 +528,9 @@ protected:
     /* System customize related variables */
     char *textgosub_label;
     char *pretextgosub_label;
-    char **pretext_buf;
+    char *pretext_buf;
     char *loadgosub_label;
+    int  textgosub_clickstr_state;
 
     ScriptHandler script_h;
     

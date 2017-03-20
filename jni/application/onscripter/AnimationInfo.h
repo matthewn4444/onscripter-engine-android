@@ -2,7 +2,7 @@
  * 
  *  AnimationInfo.h - General image storage class of ONScripter
  *
- *  Copyright (c) 2001-2013 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2016 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -52,15 +52,15 @@ public:
            TRANS_MASK           = 8
     };
 
-    bool is_copy; // allocated buffers should not be deleted from a copied instance
-    
     /* variables set from the image tag */
     int trans_mode;
+    unsigned char default_alpha;
     uchar3 direct_color;
     int pallette_number;
     uchar3 color;
     SDL_Rect orig_pos; // position and size of the image before resizing
     SDL_Rect pos; // position and size of the current cell
+    SDL_Rect affine_pos; // topleft position and width/height for affince transformation
 
     int num_of_cells;
     int current_cell;
@@ -86,6 +86,9 @@ public:
     char *mask_surface_name; // used to avoid reloading images
     SDL_Surface *image_surface;
     unsigned char *alpha_buf;
+    Uint32 texture_format;
+    SDL_mutex *mutex;
+        
     /* Variables for extended sprite (lsp2, drawsp2, etc.) */
     int scale_x, scale_y, rot;
     int mat[2][2], inv_mat[2][2];
@@ -101,7 +104,7 @@ public:
 
     int font_size_xy[2]; // used by prnum and lsp string
     int font_pitch[2]; // used by lsp string
-    int remaining_time;
+    int next_time;
 
     int param; // used by prnum and bar
     int max_param; // used by bar
@@ -130,8 +133,7 @@ public:
     void remove();
     void removeTag();
 
-    void stepAnimation(int t);
-    bool proceedAnimation();
+    bool proceedAnimation(int current_time);
 
     void setCell(int cell);
     static int doClipping( SDL_Rect *dst, SDL_Rect *clip, SDL_Rect *clipped=NULL );
@@ -151,6 +153,8 @@ public:
     SDL_Surface *setupImageAlpha( SDL_Surface *surface, SDL_Surface *surface_m, bool has_alpha );
     void setImage( SDL_Surface *surface, Uint32 texture_format );
     unsigned char getAlpha(int x, int y);
+
+    void convertFromYUV(SDL_Overlay *src);
 };
 
 #endif // __ANIMATION_INFO_H__

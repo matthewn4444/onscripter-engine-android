@@ -2,7 +2,7 @@
  *
  *  ScriptParser_command.cpp - Define command executer of ONScripter
  *
- *  Copyright (c) 2001-2014 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2016 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -23,6 +23,9 @@
 
 #include "ScriptParser.h"
 #include <math.h>
+#if defined(LINUX) || defined(MACOSX) || defined(IOS)
+#include <sys/stat.h>
+#endif
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -237,6 +240,18 @@ int ScriptParser::shadedistanceCommand()
     return RET_CONTINUE;
 }
 
+int ScriptParser::setlayerCommand()
+{
+    if ( current_mode != DEFINE_MODE )
+        errorAndExit( "setlayer: not in the define section" );
+
+    int no = script_h.readInt();
+    layer_info[no].duration = script_h.readInt();
+    setStr(&layer_info[no].str, script_h.readStr());
+    
+    return RET_CONTINUE;
+}
+
 int ScriptParser::setkinsokuCommand()
 {
     if ( current_mode != DEFINE_MODE )
@@ -304,6 +319,18 @@ int ScriptParser::savedirCommand()
         // a workaround not to overwrite save_dir given in command line options
         save_dir = new char[ strlen(archive_path) + strlen(path) + 2 ];
         sprintf( save_dir, "%s%s%c", archive_path, path, DELIMITER );
+
+#if defined(LINUX) || defined(MACOSX) || defined(IOS)
+        struct stat buf;
+        if ( stat( save_dir, &buf ) != 0 ){
+            fprintf(stderr, "savedir: %s doesn't exist.\n", save_dir);
+            delete[] save_dir;
+            save_dir = NULL;
+        
+            return RET_CONTINUE;
+        }
+#endif
+        
         script_h.setSaveDir(save_dir);
         setStr(&save_dir_envdata, path);
     }
@@ -401,19 +428,14 @@ int ScriptParser::returnCommand()
         setCurrentLabel( label+1 );
 
     bool textgosub_flag = last_nest_info->textgosub_flag;
-    char *wait_script = last_nest_info->wait_script;
 
     last_nest_info = last_nest_info->previous;
     delete last_nest_info->next;
     last_nest_info->next = NULL;
     
-    if (textgosub_flag){
-        if (wait_script && label[0] != '*'){
-            script_h.setCurrent(wait_script);
-            return RET_CONTINUE;
-        }
-
-        // if this is the end of the line, pretext becomes enabled
+    // if this is the end of the line, pretext becomes enabled
+    if (textgosub_flag &&
+        (textgosub_clickstr_state & (CLICK_NEWPAGE | CLICK_EOL))){
         line_enter_status = 0;
         page_enter_status = 0;
     }
@@ -794,7 +816,6 @@ int ScriptParser::labellogCommand()
 int ScriptParser::kidokuskipCommand()
 {
     kidokuskip_flag = true;
-    kidokumode_flag = true;
     script_h.loadKidokuData();
     
     return RET_CONTINUE;
@@ -996,12 +1017,7 @@ void ScriptParser::gosubReal( const char *label, char *next_script, bool textgos
 
     last_nest_info = last_nest_info->next;
     last_nest_info->next_script = next_script;
-    pretext_buf = &last_nest_info->next_script;
-
-    if (textgosub_flag){
-        last_nest_info->textgosub_flag = true;
-        last_nest_info->wait_script = script_h.getWait();
-    }
+    last_nest_info->textgosub_flag = textgosub_flag;
 
     setCurrentLabel( label );
 }
@@ -1368,6 +1384,16 @@ int ScriptParser::breakCommand()
     else{
         break_flag = true;
     }
+    
+    return RET_CONTINUE;
+}
+
+int ScriptParser::autosaveoffCommand()
+{
+    if ( current_mode != DEFINE_MODE )
+        errorAndExit( "autosaveoff: not in the define section" );
+
+    autosaveoff_flag = true;
     
     return RET_CONTINUE;
 }

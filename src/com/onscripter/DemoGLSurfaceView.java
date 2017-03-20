@@ -1,16 +1,16 @@
 package com.onscripter;
 
-import java.util.Locale;
-
-import javax.microedition.khronos.egl.EGLConfig;
-import javax.microedition.khronos.opengles.GL10;
-
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Point;
 import android.media.AudioManager;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
+
+import java.util.Locale;
+
+import javax.microedition.khronos.egl.EGLConfig;
+import javax.microedition.khronos.opengles.GL10;
 
 class DemoRenderer extends GLSurfaceView_SDL.Renderer {
     public DemoRenderer(String currentDirectory, String fontPath, String savePath,
@@ -136,6 +136,7 @@ class DemoGLSurfaceView extends GLSurfaceView_SDL {
         mRenderer = new DemoRenderer(currentDirectory, fontPath, savePath, useHQAudio,
                 shouldRenderOutline);
         setRenderer(mRenderer);
+        mExitted = false;
     }
 
     @Override
@@ -160,8 +161,11 @@ class DemoGLSurfaceView extends GLSurfaceView_SDL {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        final Point size = mRenderer.getScaledDimensions(
+        final Point size = mExitted ? mLastGameSize : mRenderer.getScaledDimensions(
                 MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.getSize(heightMeasureSpec));
+        if (size.x > 0 && size.y > 0) {
+            mLastGameSize = size;
+        }
         setMeasuredDimension(size.x, size.y);
     }
 
@@ -212,6 +216,13 @@ class DemoGLSurfaceView extends GLSurfaceView_SDL {
         super.onResume();
         nativeKey(0, 3); // send SDL_ACTIVEEVENT
     }
+
+    protected void onFinish() {
+        mExitted = true;
+    }
+
+    private Point mLastGameSize;
+    private boolean mExitted;
 
     DemoRenderer mRenderer;
 

@@ -2,7 +2,7 @@
  *
  *  ScriptParser.cpp - Define block parser of ONScripter
  *
- *  Copyright (c) 2001-2014 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2016 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -22,9 +22,16 @@
  */
 
 #include "ScriptParser.h"
+#ifdef ANDROID
+extern "C"
+{
+#include <jni.h>
+#include <android/log.h>
+}
+#endif
 
 #define VERSION_STR1 "ONScripter"
-#define VERSION_STR2 "Copyright (C) 2001-2014 Studio O.G.A. All Rights Reserved."
+#define VERSION_STR2 "Copyright (C) 2001-2016 Studio O.G.A. All Rights Reserved."
 
 #ifdef ANDROID
 const char* ScriptParser::DEFAULT_SAVE_MENU_NAME = NULL;
@@ -132,6 +139,8 @@ void ScriptParser::reset()
     labellog_flag = false;
     filelog_flag = false;
     kidokuskip_flag = false;
+    kidokumode_flag = true;
+    autosaveoff_flag = false;
 
     rmode_flag = true;
     windowback_flag = false;
@@ -161,6 +170,7 @@ void ScriptParser::reset()
     pretextgosub_label = NULL;
     pretext_buf = NULL;
     loadgosub_label = NULL;
+    textgosub_clickstr_state = CLICK_NONE;
 
     /* ---------------------------------------- */
     /* Lookback related variables */
@@ -767,7 +777,7 @@ FILE *ScriptParser::fopen(const char *path, const char *mode, bool use_save_dir)
 
 #endif
     }
-    return ::fopen( filename, mode );
+    return script_h.fopen(path, mode, use_save_dir);
 }
 
 void ScriptParser::createKeyTable( const char *key_exe )

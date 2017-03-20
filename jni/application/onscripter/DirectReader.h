@@ -2,7 +2,7 @@
 /*
  *  DirectReader.h - Reader from independent files
  *
- *  Copyright (c) 2001-2014 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2016 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -48,6 +48,7 @@ public:
 
     static void convertFromSJISToEUC( char *buf );
     static void convertFromSJISToUTF8( char *dst_buf, const char *src_buf );
+    static void convertFromUTF8ToSJIS( char *dst_buf, const char *src_buf );
     
 protected:
     char *file_full_path;

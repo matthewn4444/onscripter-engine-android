@@ -25,7 +25,9 @@
 #define __BASE_READER_H__
 
 #include <stdio.h>
+#ifdef ANDROID
 #include "ONScripter_log.h"
+#endif
 
 #ifndef SEEK_END
 #define SEEK_END 2

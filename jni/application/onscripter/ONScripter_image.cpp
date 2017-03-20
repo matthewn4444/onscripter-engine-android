@@ -2,7 +2,7 @@
  * 
  *  ONScripter_image.cpp - Image processing in ONScripter
  *
- *  Copyright (c) 2001-2014 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2016 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -25,7 +25,7 @@
 #include <new>
 #include "resize_image.h"
 
-SDL_Surface *ONScripter::loadImage(char *filename, bool *has_alpha, int *location)
+SDL_Surface *ONScripter::loadImage(char *filename, bool *has_alpha, int *location, unsigned char *alpha)
 {
     if (!filename) return NULL;
 
@@ -33,7 +33,7 @@ SDL_Surface *ONScripter::loadImage(char *filename, bool *has_alpha, int *locatio
     if (location) *location = BaseReader::ARCHIVE_TYPE_NONE;
 
     if (filename[0] == '>')
-        tmp = createRectangleSurface(filename, has_alpha);
+        tmp = createRectangleSurface(filename, has_alpha, alpha);
     else
         tmp = createSurfaceFromFile(filename, has_alpha, location);
     if (tmp == NULL) return NULL;
@@ -55,12 +55,14 @@ SDL_Surface *ONScripter::loadImage(char *filename, bool *has_alpha, int *locatio
     return ret;
 }
 
-SDL_Surface *ONScripter::createRectangleSurface(char *filename, bool *has_alpha)
+SDL_Surface *ONScripter::createRectangleSurface(char *filename, bool *has_alpha, unsigned char *alpha)
 {
     int c=1, w=0, h=0;
+    bool decimal_flag = false;
     while (filename[c] != 0x0a && filename[c] != 0x00){
-        if (filename[c] >= '0' && filename[c] <= '9')
+        if (!decimal_flag && filename[c] >= '0' && filename[c] <= '9')
             w = w*10 + filename[c]-'0';
+        if (filename[c] == '.') decimal_flag = true;
         if (filename[c] == ','){
             c++;
             break;
@@ -68,9 +70,11 @@ SDL_Surface *ONScripter::createRectangleSurface(char *filename, bool *has_alpha)
         c++;
     }
 
+    decimal_flag = false;
     while (filename[c] != 0x0a && filename[c] != 0x00){
-        if (filename[c] >= '0' && filename[c] <= '9')
+        if (!decimal_flag && filename[c] >= '0' && filename[c] <= '9')
             h = h*10 + filename[c]-'0';
+        if (filename[c] == '.') decimal_flag = true;
         if (filename[c] == ','){
             c++;
             break;
@@ -105,10 +109,15 @@ SDL_Surface *ONScripter::createRectangleSurface(char *filename, bool *has_alpha)
         rect.w = w*(i+1)/n - rect.x;
         if (i == n-1) rect.w = w - rect.x;
         rect.h = h;
-        SDL_FillRect(tmp, &rect, SDL_MapRGBA( tmp->format, col[0], col[1], col[2], 0xff));
+        SDL_FillRect(tmp, &rect, SDL_MapRGBA( tmp->format, col[0], col[1], col[2], alpha?*alpha:0xff));
     }
 
-    if (has_alpha) *has_alpha = false;
+    if (has_alpha){
+        if (fmt->Amask)
+            *has_alpha = true;
+        else
+            *has_alpha = false;
+    }
     
     return tmp;
 }
@@ -168,8 +177,8 @@ SDL_Surface *ONScripter::createSurfaceFromFile(char *filename, bool *has_alpha, 
         tmp = IMG_LoadJPG_RW(src);
     }
 
-    if (has_alpha){
-        if (tmp && tmp->format->Amask || is_png)
+    if (tmp && has_alpha){
+        if (tmp->format->Amask || is_png)
             *has_alpha = true;
         else
             *has_alpha = false;

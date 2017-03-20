@@ -2,7 +2,7 @@
  * 
  *  ONScripter_text.cpp - Text parser of ONScripter
  *
- *  Copyright (c) 2001-2014 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2016 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -68,7 +68,7 @@ void ONScripter::shiftHalfPixelY(SDL_Surface *surface)
     SDL_UnlockSurface( surface );
 }
 
-void ONScripter::drawGlyph( SDL_Surface *dst_surface, FontInfo *info, SDL_Color &color, char* text, int xy[2], bool shadow_flag, AnimationInfo *cache_info, SDL_Rect *clip, SDL_Rect &dst_rect, ScriptDecoder* decoder )
+void ONScripter::drawGlyph( SDL_Surface *dst_surface, FontInfo *info, SDL_Color &color, char* text, int xy[2], AnimationInfo *cache_info, SDL_Rect *clip, SDL_Rect &dst_rect, ScriptDecoder* decoder )
 {
     unsigned index = ((unsigned char*)text)[0];
     index = index << 8 | ((unsigned char*)text)[1];
@@ -94,8 +94,16 @@ void ONScripter::drawGlyph( SDL_Surface *dst_surface, FontInfo *info, SDL_Color 
     static SDL_Color fcol={0xff, 0xff, 0xff}, bcol={0, 0, 0};
     SDL_Surface *tmp_surface = TTF_RenderGlyph_Shaded((TTF_Font*)info->ttf_font[0], unicode, fcol, bcol);
     
+    SDL_Color scolor = {0, 0, 0};
     SDL_Surface *tmp_surface_s = tmp_surface;
-    if (shadow_flag && render_font_outline){
+    if (info->is_shadow && render_font_outline){
+        unsigned char max_color = color.r;
+        if (max_color < color.g) max_color = color.g;
+        if (max_color < color.b) max_color = color.b;
+        if (max_color < 0x80) scolor.r = 0xff;
+        else                  scolor.r = 0;
+        scolor.g = scolor.b = scolor.r;
+
         tmp_surface_s = TTF_RenderGlyph_Shaded((TTF_Font*)info->ttf_font[1], unicode, fcol, bcol);
         if (tmp_surface && tmp_surface_s){
             if ((tmp_surface_s->w-tmp_surface->w) & 1) shiftHalfPixelX(tmp_surface_s);
@@ -117,7 +125,7 @@ void ONScripter::drawGlyph( SDL_Surface *dst_surface, FontInfo *info, SDL_Color 
         dst_rect.y -= info->font_size_xy[0]/2;
     }
 
-    if (shadow_flag && tmp_surface_s){
+    if (info->is_shadow && tmp_surface_s){
         SDL_Rect dst_rect_s = dst_rect;
         if (render_font_outline){
             dst_rect_s.x -= (tmp_surface_s->w - tmp_surface->w)/2;
@@ -138,10 +146,10 @@ void ONScripter::drawGlyph( SDL_Surface *dst_surface, FontInfo *info, SDL_Color 
         }
 
         if (cache_info)
-            cache_info->blendText( tmp_surface_s, dst_rect_s.x, dst_rect_s.y, bcol, clip, rotate_flag );
+            cache_info->blendText( tmp_surface_s, dst_rect_s.x, dst_rect_s.y, scolor, clip, rotate_flag );
         
         if (dst_surface)
-            alphaBlendText( dst_surface, dst_rect_s, tmp_surface_s, bcol, clip, rotate_flag );
+            alphaBlendText( dst_surface, dst_rect_s, tmp_surface_s, scolor, clip, rotate_flag );
     }
 
     if ( tmp_surface ){
@@ -200,8 +208,8 @@ void ONScripter::drawChar( char* text, FontInfo *info, bool flush_flag, bool loo
         }
     }
 
-    info->old_xy[0] = info->x();
-    info->old_xy[1] = info->y();
+    info->old_xy[0] = info->x(false);
+    info->old_xy[1] = info->y(false);
 
     char text2[3] = {text[0], 0, 0};
     int numBytes = decoder->getNumBytes(text[0]);
@@ -219,7 +227,7 @@ void ONScripter::drawChar( char* text, FontInfo *info, bool flush_flag, bool loo
     
         SDL_Color color = {info->color[0], info->color[1], info->color[2]};
         SDL_Rect dst_rect;
-        drawGlyph( surface, info, color, text2, xy, info->is_shadow, cache_info, clip, dst_rect, decoder );
+        drawGlyph( surface, info, color, text2, xy, cache_info, clip, dst_rect, decoder );
 
         if ( surface == accumulation_surface &&
              !flush_flag &&
@@ -251,7 +259,7 @@ void ONScripter::drawChar( char* text, FontInfo *info, bool flush_flag, bool loo
     }
 }
 
-void ONScripter::drawString( const char *str, uchar3 color, FontInfo *info, bool flush_flag, SDL_Surface *surface, SDL_Rect *rect, AnimationInfo *cache_info, bool single_line, ScriptDecoder* decoder )
+void ONScripter::drawString( const char *str, uchar3 color, FontInfo *info, bool flush_flag, SDL_Surface *surface, SDL_Rect *rect, AnimationInfo *cache_info, bool pack_hankaku, bool single_line, ScriptDecoder* decoder)
 {
     if (!decoder && *str) {
         ScriptDecoder* decoders[2] = { script_h.getSystemLanguageText()->decoder, script_h.decoder };
@@ -327,7 +335,7 @@ void ONScripter::drawString( const char *str, uchar3 color, FontInfo *info, bool
 #endif
         if (*str) {
             if (ScriptDecoder::isOneByte(*str)) {
-                if (*str == 0x0a || (*str == '\\' && info->is_newline_accepted)){
+                if (!pack_hankaku && (*str == 0x0a || (*str == '\\' && info->is_newline_accepted))){
                     if (single_line) break;
                     info->newLine();
                     str++;
@@ -494,7 +502,7 @@ void ONScripter::restoreTextBuffer(SDL_Surface *surface)
 void ONScripter::enterTextDisplayMode(bool text_flag)
 {
     if (line_enter_status <= 1 && (!pretextgosub_label || saveon_flag) && internal_saveon_flag && text_flag){
-        saveSaveFile(false);
+        storeSaveFile();
         internal_saveon_flag = false;
     }
     
@@ -591,7 +599,7 @@ bool ONScripter::clickWait( char *out_text )
         if ( textgosub_label ){
             saveon_flag = false;
 
-            char *next = script_h.getNext();
+            char *next = script_h.getWait();
             textgosub_clickstr_state = CLICK_WAIT;
             if (*next == 0x0a) {
                 textgosub_clickstr_state |= CLICK_EOL;
@@ -653,7 +661,7 @@ bool ONScripter::clickNewPage( char *out_text )
             saveon_flag = false;
 
             textgosub_clickstr_state = CLICK_NEWPAGE;
-            gosubReal( textgosub_label, script_h.getNext(), true );
+            gosubReal( textgosub_label, script_h.getWait(), true );
 
             event_mode = IDLE_EVENT_MODE;
             waitEvent(0);
@@ -733,7 +741,7 @@ void ONScripter::endRuby(bool flush_flag, bool lookback_flag, SDL_Surface *surfa
 int ONScripter::textCommand()
 {
     if (line_enter_status <= 1 && (!pretextgosub_label || saveon_flag) && internal_saveon_flag){
-        saveSaveFile(false);
+        storeSaveFile();
         internal_saveon_flag = false;
     }
 
@@ -794,6 +802,7 @@ int ONScripter::textCommand()
         }
 
         saveon_flag = false;
+        pretext_buf = script_h.getCurrent();
         gosubReal( pretextgosub_label, script_h.getCurrent() );
         line_enter_status = 1;
 
@@ -802,9 +811,15 @@ int ONScripter::textCommand()
 
     enterTextDisplayMode();
 
-    line_enter_status = 2;
-    if (pagetag_flag) page_enter_status = 1;
-
+#ifdef USE_LUA
+    if (lua_handler.isCallbackEnabled(LUAHandler::LUA_TEXT))
+    {
+        if (lua_handler.callFunction(true, "text"))
+            errorAndExit( lua_handler.error_str );
+        processEOT();
+    }
+    else
+#endif    
     while(processText());
 
     return RET_CONTINUE;
@@ -815,8 +830,10 @@ bool ONScripter::checkLineBreak(const char *buf, FontInfo *fi)
     if (!is_kinsoku) return false;
     
     // check start kinsoku
-    if (isStartKinsoku( buf+2 )){
+    if (isStartKinsoku( buf+2 ) ||
+        (buf[2]=='_' && isStartKinsoku( buf+3 ))){
         const char *buf2 = buf;
+        if (buf2[2] == '_') buf2++;
         int i = 2;
         while (!fi->isEndOfLine(i)){
             if      ( buf2[i+2] == 0x0a || buf2[i+2] == 0 ) break;
@@ -858,7 +875,7 @@ void ONScripter::processEOT()
         sentence_font.newLine();
     }
 
-    if (!new_line_skip_flag && !pagetag_flag) line_enter_status = 0;
+    if (!new_line_skip_flag && !pagetag_flag && line_enter_status == 2) line_enter_status = 0;
 }
 
 bool ONScripter::processText()
@@ -928,6 +945,9 @@ bool ONScripter::processText()
         processEOT();
         return false;
     }
+
+    line_enter_status = 2;
+    if (pagetag_flag) page_enter_status = 1;
 
     new_line_skip_flag = false;
     
