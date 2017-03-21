@@ -12,7 +12,6 @@ which covers the bulk of Europe and other non-Asian countries.
 - Fixes a bunch of crashes
 - Supports higher quality audio
 - Multiple languages which is detected at runtime (Japanese, English, Korean, Chinese, UTF-8)
-- Supports loading saves from different folder
 - Android logging and ndk error handling
 - When loading corrupted save file, it will not crash
 - Compatible with ONScripter-EN
@@ -42,12 +41,8 @@ This is a very simple example of enabling ONScripter in your app with events.
             // mGame = new ONScripterView(this, "/sdcard/path/to/game/directory", "/path/to/font/file");
 
             // Constructor with Specified Font and Choice of Audio
-            // mGame = new ONScripterView(this, "/sdcard/path/to/game/directory", "/path/to/font/file",
-            //   useHQAudio, renderOutline);
-
-            // Full Constructor with Specified Save Path
             mGame = new ONScripterView(this, "/path/to/game/directory", "/path/to/font/file",
-                "/path/to/save/folder", useHQAudio, renderOutline);
+            useHQAudio, renderOutline);
 
             setContentView(mGame);
 

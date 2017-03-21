@@ -116,11 +116,7 @@ public:
 
     void reset();
     void setSaveDir(const char *path);
-#ifdef ANDROID
-    FILE *fopen( const char *path, const char *mode, bool use_save_dir=false, bool use_root_write_dir=false );
-#else
     FILE *fopen( const char *path, const char *mode, bool use_save_dir=false );
-#endif
     void setKeyTable( const unsigned char *key_table );
 
     // basic parser function
@@ -348,9 +344,6 @@ private:
 
     char *archive_path;
     char *save_dir;
-#ifdef ANDROID
-    char *root_writable;
-#endif
     int  script_buffer_length;
     char *script_buffer;
     unsigned char *tmp_script_buf;

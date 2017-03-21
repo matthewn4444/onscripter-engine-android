@@ -72,11 +72,7 @@ public:
     void gosubReal( const char *label, char *next_script, bool textgosub_flag=false );
     int getStringBufferOffset(){return string_buffer_offset;};
 
-#ifdef ANDROID
-    FILE *fopen(const char *path, const char *mode, bool use_save_dir=false, bool use_root_write_dir=false);
-#else
     FILE *fopen(const char *path, const char *mode, bool use_save_dir=false);
-#endif
     void saveGlovalData();
 
     /* Command */
@@ -239,9 +235,6 @@ protected:
     char *archive_path;
     char *save_dir;
     char *nsa_path;
-#ifdef ANDROID
-    char *root_writable;
-#endif
     unsigned int nsa_offset;
     bool globalon_flag;
     bool labellog_flag;

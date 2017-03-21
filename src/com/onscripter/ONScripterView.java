@@ -97,11 +97,11 @@ public class ONScripterView extends DemoGLSurfaceView {
      * @param fontPath is the location of the font
      */
     public ONScripterView(Context context, String gameDirectory, String fontPath) {
-        this(context, gameDirectory, fontPath, null, true, false);
+        this(context, gameDirectory, fontPath, true, false);
     }
 
     /**
-     * Constructor with font path
+     * Full constructor with the outline code
      * @param context used for view constructor
      * @param gameDirectory is the location of the game
      * @param fontPath is the location of the font
@@ -110,21 +110,7 @@ public class ONScripterView extends DemoGLSurfaceView {
      */
     public ONScripterView(Context context, String gameDirectory, String fontPath,
                           boolean useHQAudio, boolean shouldRenderOutline) {
-        this(context, gameDirectory, fontPath, null, useHQAudio, shouldRenderOutline);
-    }
-
-    /**
-     * Full constructor with the outline code
-     * @param context used for view constructor
-     * @param gameDirectory is the location of the game
-     * @param fontPath is the location of the font
-     * @param savePath is the location of the save files
-     * @param useHQAudio should use higher quality audio, default is true
-     * @param shouldRenderOutline chooses whether to show outline on font
-     */
-    public ONScripterView(Context context, String gameDirectory, String fontPath, String savePath,
-                          boolean useHQAudio, boolean shouldRenderOutline) {
-        super(context, gameDirectory, fontPath, savePath, useHQAudio, shouldRenderOutline);
+        super(context, gameDirectory, fontPath, useHQAudio, shouldRenderOutline);
 
         mCurrentDirectory = gameDirectory;
         mAudioThread = new AudioThread();

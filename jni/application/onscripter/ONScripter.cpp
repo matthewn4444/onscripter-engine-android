@@ -278,7 +278,6 @@ ONScripter::ONScripter()
     current_button_state.down_flag = false;
 
 #ifdef ANDROID
-    root_writable = NULL;
     audio_high_quality = false;
     setMenuLanguage("en");
 #endif
@@ -348,14 +347,6 @@ void ONScripter::setSaveDir(const char *path)
     save_dir = new char[ RELATIVEPATHLENGTH + strlen(path) + 2 ];
     sprintf( save_dir, RELATIVEPATH "%s%c", path, DELIMITER );
     script_h.setSaveDir(save_dir);
-}
-
-void ONScripter::setRootWritableDir(const char *path)
-{
-    if (root_writable) delete[] root_writable;
-    root_writable = new char[ strlen(path) + 2 ];
-    sprintf( root_writable, "%s%c", path, DELIMITER );
-    script_h.setRootWritableDir(root_writable);
 }
 
 void ONScripter::setFullscreenMode()

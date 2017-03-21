@@ -335,15 +335,6 @@ int ScriptParser::savedirCommand()
         setStr(&save_dir_envdata, path);
     }
 
-    // Create the save folder if it doesn't exist already
-    if (root_writable) {
-        char save_path[512];
-        sprintf( save_path, "%s%s", root_writable, save_dir );
-        mkdir(save_path, 0700);
-    }
-    else
-        mkdir(save_dir, 0700);
-
     return RET_CONTINUE;
 }
 

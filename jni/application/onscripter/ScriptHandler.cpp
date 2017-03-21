@@ -43,7 +43,6 @@ ScriptHandler::ScriptHandler()
     str_string_buffer   = new char[STRING_BUFFER_LENGTH];
     saved_string_buffer = new char[STRING_BUFFER_LENGTH];
 #ifdef ANDROID
-    root_writable = NULL;
     menuText = NULL;
     setSystemLanguage("en");
 #endif
@@ -78,11 +77,6 @@ ScriptHandler::~ScriptHandler()
     }
 
 #ifdef ANDROID
-    if (root_writable) {
-        delete[] root_writable;
-        root_writable = NULL;
-    }
-
     if (menuText) {
         delete menuText;
         menuText = NULL;
@@ -157,15 +151,6 @@ void ScriptHandler::reset()
     last_script_context->next = NULL;
 }
 
-#ifdef ANDROID
-void ScriptHandler::setRootWritableDir(const char *path)
-{
-    if (root_writable) delete[] root_writable;
-    root_writable = new char[ strlen(path) ];
-    strcpy(root_writable, path);
-}
-#endif
-
 void ScriptHandler::setSaveDir(const char *path)
 {
     if (save_dir) delete[] save_dir;
@@ -173,33 +158,13 @@ void ScriptHandler::setSaveDir(const char *path)
     strcpy(save_dir, path);
 }
 
-#ifdef ANDROID
-FILE *ScriptHandler::fopen( const char *path, const char *mode, bool use_save_dir, bool use_root_write_dir )
-#else
 FILE *ScriptHandler::fopen( const char *path, const char *mode, bool use_save_dir )
-#endif
 {
     char filename[256];
-#ifdef ANDROID
-    if (use_save_dir && save_dir){
-        if (root_writable) {
-            sprintf( filename, "%s%s%s", root_writable, save_dir, path );
-        } else {
-            sprintf( filename, "%s%s", save_dir, path );
-        }
-    } else {
-        if (root_writable && (strcmp(mode, "wb") == 0 || use_root_write_dir)) {
-            sprintf( filename, "%s%s%s", root_writable, archive_path, path );
-        } else {
-            sprintf( filename, "%s%s", archive_path, path );
-        }
-    }
-#else
     if (use_save_dir && save_dir)
         sprintf( filename, "%s%s", save_dir, path );
     else
         sprintf( filename, "%s%s", archive_path, path );
-#endif
 
     for ( unsigned int i=0 ; i<strlen( filename ) ; i++ )
         if ( filename[i] == '/' || filename[i] == '\\' )
@@ -716,11 +681,7 @@ void ScriptHandler::loadKidokuData()
     kidoku_buffer = new char[ script_buffer_length/8 + 1 ];
     memset( kidoku_buffer, 0, script_buffer_length/8 + 1 );
 
-#ifdef ANDROID
-    if ( ( fp = fopen( "kidoku.dat", "rb", true, true ) ) != NULL ){
-#else
     if ( ( fp = fopen( "kidoku.dat", "rb", true ) ) != NULL ){
-#endif
         fread( kidoku_buffer, 1, script_buffer_length/8, fp );
         fclose( fp );
     }

@@ -406,11 +406,7 @@ size_t ScriptParser::loadFileIOBuf( const char *filename, size_t* outSize )
     if (strcmp(filename, "envdata") != 0) use_save_dir = true;
 
     FILE *fp;
-#ifdef ANDROID
-    if ( (fp = fopen( filename, "rb", use_save_dir, true )) == NULL )
-#else
     if ( (fp = fopen( filename, "rb", use_save_dir )) == NULL )
-#endif
         return 0;
     
     fseek(fp, 0, SEEK_END);
@@ -751,32 +747,8 @@ ScriptParser::EffectLink *ScriptParser::parseEffect(bool init_flag)
     return NULL;
 }
 
-#ifdef ANDROID
-FILE *ScriptParser::fopen(const char *path, const char *mode, bool use_save_dir, bool use_root_write_dir)
-#else
 FILE *ScriptParser::fopen(const char *path, const char *mode, bool use_save_dir)
-#endif
 {
-    char filename[1024];
-    if (use_save_dir && save_dir){
-#ifdef ANDROID
-        if (root_writable)
-            sprintf( filename, "%s%s%s", root_writable, save_dir, path );
-        else
-            sprintf( filename, "%s%s", save_dir, path );
-    }
-    else{
-        if (root_writable && (strcmp(mode, "wb") == 0 || use_root_write_dir))
-            sprintf( filename, "%s%s%s", root_writable, archive_path, path );
-        else
-            sprintf( filename, "%s%s", archive_path, path );
-#else
-        sprintf( filename, "%s%s", save_dir, path );
-    else
-        sprintf( filename, "%s%s", archive_path, path );
-
-#endif
-    }
     return script_h.fopen(path, mode, use_save_dir);
 }
 

@@ -13,11 +13,10 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 class DemoRenderer extends GLSurfaceView_SDL.Renderer {
-    public DemoRenderer(String currentDirectory, String fontPath, String savePath,
-                        boolean useHQAudio, boolean renderOutline) {
+    public DemoRenderer(String currentDirectory, String fontPath, boolean useHQAudio,
+                        boolean renderOutline) {
         mCurrentDirectory = currentDirectory;
         mFontPath = fontPath;
-        mSavePath = savePath;
         mShouldRenderOutline = renderOutline;
         mUseHQAudio = useHQAudio;
         doNativeInit(true);
@@ -57,9 +56,6 @@ class DemoRenderer extends GLSurfaceView_SDL.Renderer {
         if (mFontPath != null) {
             n += 2;
         }
-        if (mSavePath != null) {
-            n += 2;
-        }
         String[] arg = new String[n];
         n = 0;
         arg[n++] = "--language";
@@ -76,10 +72,6 @@ class DemoRenderer extends GLSurfaceView_SDL.Renderer {
         if (mFontPath != null) {
             arg[n++] = "-f";
             arg[n++] = mFontPath;
-        }
-        if (mSavePath != null) {
-            arg[n++] = "--save-path";
-            arg[n++] = mSavePath;
         }
         nativeInit(mCurrentDirectory, arg);
 
@@ -123,17 +115,16 @@ class DemoRenderer extends GLSurfaceView_SDL.Renderer {
 
     private final String mCurrentDirectory;
     private final String mFontPath;
-    private final String mSavePath;
     private final boolean mUseHQAudio;
     private final boolean mShouldRenderOutline;
 }
 
 class DemoGLSurfaceView extends GLSurfaceView_SDL {
     public DemoGLSurfaceView(Context context, String currentDirectory, String fontPath,
-                             String savePath, boolean useHQAudio, boolean shouldRenderOutline) {
+                             boolean useHQAudio, boolean shouldRenderOutline) {
         super(context);
         nativeInitJavaCallbacks();
-        mRenderer = new DemoRenderer(currentDirectory, fontPath, savePath, useHQAudio,
+        mRenderer = new DemoRenderer(currentDirectory, fontPath, useHQAudio,
                 shouldRenderOutline);
         setRenderer(mRenderer);
         mExitted = false;

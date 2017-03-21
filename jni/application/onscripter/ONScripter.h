@@ -149,7 +149,6 @@ public:
     void setArchivePath(const char *path);
     void setSaveDir(const char *path);
 #ifdef ANDROID
-    void setRootWritableDir(const char *path);
     void enableHQAudio();
 #endif
     void setFullscreenMode();

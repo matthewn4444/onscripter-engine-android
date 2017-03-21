@@ -50,12 +50,7 @@ void ONScripter::searchSaveFile( SaveFileInfo &save_file_info, int no )
 
     script_h.getStringFromInteger( save_file_info.sjis_no, no, (num_save_file >= 10)?2:1 );
 #if defined(LINUX) || defined(MACOSX) || defined(IOS)
-#ifdef ANDROID
-    sprintf( file_name, "%s%ssave%d.dat", root_writable?root_writable:"",
-		save_dir?save_dir:archive_path, no );
-#else
     sprintf( file_name, "%ssave%d.dat", save_dir?save_dir:archive_path, no );
-#endif
     struct stat buf;
     struct tm *tm;
     if ( stat( file_name, &buf ) != 0 ){

@@ -979,18 +979,7 @@ int ONScripter::savescreenshotCommand()
     resizeSurface( screenshot_surface, surface );
 
     const char *buf = script_h.readStr();
-    char filename[1024];
-    sprintf( filename, "%s", buf );
-
-	// If save and root writable exists and screenshot is saved to save folder,
-	// prepend root writable path to filename
-    if (save_dir && root_writable && strncmp(save_dir, filename, strlen(save_dir)) == 0){
-        size_t rootWriteLength = strlen(root_writable);
-        memmove(filename + rootWriteLength, filename, strlen(filename) + 1);
-        memcpy(filename, root_writable, rootWriteLength);
-    }
-
-    FILE *fp = fopen(filename, "wb");
+    FILE *fp = fopen(buf, "wb");
     if (fp){
         SDL_RWops *rwops = SDL_RWFromFP(fp, SDL_TRUE);
         SDL_SaveBMP_RW(surface, rwops, 1);
