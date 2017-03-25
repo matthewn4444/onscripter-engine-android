@@ -76,6 +76,7 @@ public class ONScripterView extends DemoGLSurfaceView {
 
     private final AudioThread mAudioThread;
     private final String mCurrentDirectory;
+    private final Handler mMainHandler;
 
     // Native methods
     private native void nativeSetSentenceFontScale(double scale);
@@ -114,6 +115,7 @@ public class ONScripterView extends DemoGLSurfaceView {
 
         mCurrentDirectory = gameDirectory;
         mAudioThread = new AudioThread();
+        mMainHandler = new Handler(Looper.getMainLooper());
 
         sHandler = new UpdateHandler(this);
         setFocusableInTouchMode(true);
@@ -231,16 +233,23 @@ public class ONScripterView extends DemoGLSurfaceView {
     }
 
     /* Called from ONScripter.h */
-    protected void receiveException(String message, String currentLineBuffer, String backtrace) {
-        if (currentLineBuffer != null) {
-            Log.e(TAG, message + "\nCurrent line: " + currentLineBuffer + "\n" + backtrace);
-        } else {
-            Log.e(TAG, message + "\n" + backtrace);
-        }
-        if (mListener != null) {
-            NativeONSException exception = new NativeONSException(message);
-            mListener.onNativeError(exception, currentLineBuffer, backtrace);
-        }
+    protected void receiveException(final String message, final String currentLineBuffer,
+                                    final String backtrace) {
+        mMainHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (currentLineBuffer != null) {
+                    Log.e(TAG, message + "\nCurrent line: " + currentLineBuffer + "\n" + backtrace);
+                } else {
+                    Log.e(TAG, message + "\n" + backtrace);
+                }
+                if (mListener != null) {
+                    NativeONSException exception = new NativeONSException(message);
+                    mListener.onNativeError(exception, currentLineBuffer, backtrace);
+                }
+
+            }
+        });
     }
 
     /* Called from ONScripter.h */
@@ -251,7 +260,7 @@ public class ONScripterView extends DemoGLSurfaceView {
     @Override
     protected void onFinish() {
         super.onFinish();
-        new Handler(Looper.getMainLooper()).post(new Runnable() {
+        mMainHandler.post(new Runnable() {
             @Override
             public void run() {
                 if (mListener != null) {
