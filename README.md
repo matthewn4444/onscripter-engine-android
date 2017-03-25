@@ -7,7 +7,7 @@ Japanese, English, Korean, Chinese, and UTF-8 (like Spanish, Russian, French, Ge
 which covers the bulk of Europe and other non-Asian countries.
 
 
-## Changes/Fixes from AndroidFFmpeg
+## Changes/Fixes from original ONScripter
 
 - Fixes a bunch of crashes
 - Supports higher quality audio
