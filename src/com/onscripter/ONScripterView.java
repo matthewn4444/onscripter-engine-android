@@ -171,8 +171,8 @@ public class ONScripterView extends DemoGLSurfaceView {
      * @param keyCode the key to simulate into the game
      */
     public void sendNativeKeyPress(int keyCode) {
-        nativeKey(keyCode, 1);
-        nativeKey(keyCode, 0);
+        triggerKeyEvent(keyCode, 1);
+        triggerKeyEvent(keyCode, 0);
     }
 
     /**
@@ -180,7 +180,7 @@ public class ONScripterView extends DemoGLSurfaceView {
      * @return font size (pixels)
      */
     public int getGameFontSize() {
-        return nativeGetDialogFontSize();
+        return !mHasExit ? nativeGetDialogFontSize() : 0;
     }
 
     /**
@@ -206,7 +206,9 @@ public class ONScripterView extends DemoGLSurfaceView {
      * @param scaleFactor scale factor
      */
     public void setFontScaling(double scaleFactor) {
-        nativeSetSentenceFontScale(scaleFactor);
+        if (!mHasExit) {
+            nativeSetSentenceFontScale(scaleFactor);
+        }
     }
 
     @Override

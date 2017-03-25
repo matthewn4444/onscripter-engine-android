@@ -143,7 +143,7 @@ class DemoGLSurfaceView extends GLSurfaceView_SDL {
         if( event.getAction() == MotionEvent.ACTION_MOVE ) {
             action = 2;
         }
-        if ( action >= 0 ) {
+        if ( action >= 0 && !mExitted ) {
             nativeMouse( (int)event.getX(), (int)event.getY(), action );
         }
 
@@ -181,7 +181,7 @@ class DemoGLSurfaceView extends GLSurfaceView_SDL {
             super.onKeyDown(keyCode, event);
             return false;
         }
-        nativeKey(keyCode, 1);
+        triggerKeyEvent(keyCode, 1);
         return true;
     }
 
@@ -191,13 +191,13 @@ class DemoGLSurfaceView extends GLSurfaceView_SDL {
             super.onKeyUp(keyCode, event);
             return false;
         }
-        nativeKey(keyCode, 0);
+        triggerKeyEvent(keyCode, 0);
         return true;
     }
 
     @Override
     public void onPause() {
-        nativeKey(0, 3); // send SDL_ACTIVEEVENT
+        triggerKeyEvent(0, 3); // send SDL_ACTIVEEVENT
         super.onPause();
         surfaceDestroyed(this.getHolder());
     }
@@ -205,7 +205,13 @@ class DemoGLSurfaceView extends GLSurfaceView_SDL {
     @Override
     public void onResume() {
         super.onResume();
-        nativeKey(0, 3); // send SDL_ACTIVEEVENT
+        triggerKeyEvent(0, 3); // send SDL_ACTIVEEVENT
+    }
+
+    protected void triggerKeyEvent(int keyCode, int down) {
+        if (!mExitted) {
+            nativeKey(keyCode, down);
+        }
     }
 
     protected void onFinish() {
@@ -218,6 +224,6 @@ class DemoGLSurfaceView extends GLSurfaceView_SDL {
     DemoRenderer mRenderer;
 
     private native int nativeInitJavaCallbacks();
-    protected native void nativeMouse( int x, int y, int action );
-    protected native void nativeKey( int keyCode, int down );
+    private native void nativeMouse( int x, int y, int action );
+    private native void nativeKey( int keyCode, int down );
 }
