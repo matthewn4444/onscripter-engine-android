@@ -108,6 +108,7 @@ public:
     static jmethodID JavaSendException;
     static jmethodID JavaOnLoadFile;
     static jmethodID JavaOnFinish;
+    static jmethodID JavaGetFD;
     static jclass JavaONScripterClass;
 
     static void setJavaEnv(JNIEnv * jniEnv, jobject thiz) {
@@ -125,6 +126,7 @@ public:
         JavaReceiveMessage = jniEnv->GetStaticMethodID(JavaONScripterClass,"receiveMessageFromNDK", "(IZ)V");
         JavaOnLoadFile = jniEnv->GetMethodID(JavaONScripterClass,"onLoadFile", "(Ljava/lang/String;Ljava/lang/String;)V");
         JavaOnFinish = jniEnv->GetMethodID(JavaONScripterClass,"onFinish", "()V");
+        JavaGetFD = jniEnv->GetMethodID(JavaONScripterClass, "getFD", "([CI)I");
         JavaSendException = jniEnv->GetMethodID(JavaONScripterClass,"receiveException",
             "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
     }

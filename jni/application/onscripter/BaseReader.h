@@ -27,6 +27,8 @@
 #include <stdio.h>
 #ifdef ANDROID
 #include "ONScripter_log.h"
+extern "C" FILE *fopen_ons(const char *str, const char *mode);
+#define fopen fopen_ons
 #endif
 
 #ifndef SEEK_END

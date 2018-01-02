@@ -50,6 +50,7 @@ jmethodID   ONScripter::JavaSendException = NULL;
 jmethodID   ONScripter::JavaReceiveMessage = NULL;
 jmethodID   ONScripter::JavaOnLoadFile = NULL;
 jmethodID   ONScripter::JavaOnFinish = NULL;
+jmethodID   ONScripter::JavaGetFD = NULL;
 jclass      ONScripter::JavaONScripterClass = NULL;
 
 const char* ONScripter::MESSAGE_SAVE_EXIST = NULL;

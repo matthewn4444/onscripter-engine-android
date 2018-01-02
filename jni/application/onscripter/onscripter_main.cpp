@@ -144,6 +144,12 @@ JAVA_EXPORT_NAME(ONScripterView_nativeSetSentenceFontScale) ( JNIEnv*  env, jobj
 	}
 }
 
+JNIEXPORT void JNICALL JAVA_EXPORT_NAME(DemoGLSurfaceView_nativeSaveGameSettings) (JNIEnv *jniEnv, jobject thiz) {
+    if (ons) {
+        ons->saveGlovalData();
+    }
+}
+
 JNIEXPORT void JNICALL JAVA_EXPORT_NAME(DemoGLSurfaceView_nativeInitJavaCallbacks) (JNIEnv * jniEnv, jobject thiz)
 {
     ONScripter::setJavaEnv(jniEnv, thiz);
@@ -164,6 +170,30 @@ void playVideoAndroid(const char *filename, bool click_flag, bool loop_flag)
     wrapper.env->SetCharArrayRegion(jca, 0, strlen(filename), jc);
     wrapper.env->CallVoidMethod( ONScripter::JavaONScripter, ONScripter::JavaPlayVideo, jca, click_flag, loop_flag );
     delete[] jc;
+}
+
+#undef fopen
+FILE *fopen_ons(const char *path, const char *mode)
+{
+    int mode2 = 0;
+    if (mode[0] == 'w') mode2 = 1;
+
+    FILE *fp = fopen(path, mode);
+    if (fp || mode2 ==0) return fp;
+
+    JNIWrapper wrapper(ONScripter::JNI_VM);
+    JNIEnv * jniEnv = wrapper.env;
+
+    jchar *jc = new jchar[strlen(path)];
+    for (int i=0 ; i<strlen(path) ; i++)
+        jc[i] = path[i];
+    jcharArray jca = jniEnv->NewCharArray(strlen(path));
+    jniEnv->SetCharArrayRegion(jca, 0, strlen(path), jc);
+    int fd = jniEnv->CallIntMethod( ONScripter::JavaONScripter, ONScripter::JavaGetFD, jca, mode2 );
+    jniEnv->DeleteLocalRef(jca);
+    delete[] jc;
+
+    return fdopen(fd, mode);
 }
 }
 #endif

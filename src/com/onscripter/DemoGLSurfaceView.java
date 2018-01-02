@@ -19,7 +19,6 @@ class DemoRenderer extends GLSurfaceView_SDL.Renderer {
         mFontPath = fontPath;
         mShouldRenderOutline = renderOutline;
         mUseHQAudio = useHQAudio;
-        doNativeInit(true);
     }
 
     @Override
@@ -42,7 +41,7 @@ class DemoRenderer extends GLSurfaceView_SDL.Renderer {
         doNativeInit(false);
     }
 
-    private void doNativeInit(boolean openOnly) {
+    void doNativeInit(boolean openOnly) {
         int n = 2;
         if (openOnly) {
             n++;
@@ -113,7 +112,7 @@ class DemoRenderer extends GLSurfaceView_SDL.Renderer {
     native int nativeGetWidth();
     native int nativeGetHeight();
 
-    private final String mCurrentDirectory;
+    final String mCurrentDirectory;
     private final String mFontPath;
     private final boolean mUseHQAudio;
     private final boolean mShouldRenderOutline;
@@ -128,6 +127,7 @@ class DemoGLSurfaceView extends GLSurfaceView_SDL {
                 shouldRenderOutline);
         setRenderer(mRenderer);
         mExitted = false;
+        mRenderer.doNativeInit(true);
     }
 
     @Override
@@ -198,6 +198,9 @@ class DemoGLSurfaceView extends GLSurfaceView_SDL {
     @Override
     public void onPause() {
         triggerKeyEvent(0, 3); // send SDL_ACTIVEEVENT
+
+        // Some games require saving the gloval again when going to overview to save last file
+        queueEvent(mSaveGameSettingsRunnable);
         super.onPause();
         surfaceDestroyed(this.getHolder());
     }
@@ -218,11 +221,23 @@ class DemoGLSurfaceView extends GLSurfaceView_SDL {
         mExitted = true;
     }
 
+    protected String getCurrentDirectory() {
+        return mRenderer.mCurrentDirectory;
+    }
+
+    private final Runnable mSaveGameSettingsRunnable = new Runnable() {
+        @Override
+        public void run() {
+            nativeSaveGameSettings();
+        }
+    };
+
     private Point mLastGameSize;
     private boolean mExitted;
 
     DemoRenderer mRenderer;
 
+    private native void nativeSaveGameSettings();
     private native int nativeInitJavaCallbacks();
     private native void nativeMouse( int x, int y, int action );
     private native void nativeKey( int keyCode, int down );
