@@ -245,7 +245,7 @@ public class ONScripterView extends DemoGLSurfaceView {
 
     /* Called from ONScripter.h */
     protected void playVideo(char[] filename, boolean clickToSkip, boolean shouldLoop){
-        if (mListener != null) {
+        if (!mHasExit && mListener != null) {
             File video = new File(getCurrentDirectory() + "/" + new String(filename)
                     .replace("\\", "/"));
             if (video.exists() && video.canRead()) {
