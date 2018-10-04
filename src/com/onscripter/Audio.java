@@ -1,6 +1,6 @@
 package com.onscripter;
 
-import android.app.Activity;
+import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
@@ -66,6 +66,8 @@ class AudioThread {
                     encoding,
                     bufSize,
                     AudioTrack.MODE_STREAM );*/
+					
+			mAudio.play();
         }
         return mAudioBuffer.length;
     }
