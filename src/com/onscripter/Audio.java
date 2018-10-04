@@ -8,6 +8,8 @@ import android.media.AudioTrack;
 
 class AudioThread {
 
+    private AudioAttributes mAttrib;
+    private AudioFormat mFormat;
     private AudioTrack mAudio;
     private byte[] mAudioBuffer;
 
@@ -46,13 +48,24 @@ class AudioThread {
 
             mAudioBuffer = new byte[bufSize];
 
-            mAudio = new AudioTrack(AudioManager.STREAM_MUSIC,
+            mAttrib = new AudioAttributes.Builder()
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .setUsage(AudioAttributes.USAGE_GAME).build();
+
+            mFormat = new AudioFormat.Builder()
+                    .setSampleRate(rate)
+                    .setChannelMask(channels)
+                    .setEncoding(encoding)
+                    .build();
+
+            mAudio = new AudioTrack(mAttrib, mFormat, bufSize, AudioTrack.MODE_STREAM, AudioManager.AUDIO_SESSION_ID_GENERATE);
+
+            /*mAudio = new AudioTrack(AudioManager.STREAM_MUSIC,
                     rate,
                     channels,
                     encoding,
                     bufSize,
-                    AudioTrack.MODE_STREAM );
-            mAudio.play();
+                    AudioTrack.MODE_STREAM );*/
         }
         return mAudioBuffer.length;
     }
