@@ -9,8 +9,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
-import android.support.annotation.RequiresApi;
-import android.support.v4.provider.DocumentFile;
 import android.util.Log;
 
 import com.onscripter.exception.NativeONSException;
@@ -19,6 +17,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+
+import androidx.annotation.RequiresApi;
+import androidx.documentfile.provider.DocumentFile;
 
 
 /**
@@ -429,7 +430,6 @@ public class ONScripterView extends DemoGLSurfaceView {
     // Load the libraries
     static {
         System.loadLibrary("sdl");
-        System.loadLibrary("application");
-        System.loadLibrary("sdl_main");
+        System.loadLibrary("onscripter");
     }
 }

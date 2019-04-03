@@ -405,4 +405,5 @@ exit:
     JNIWrapper wrapper(ONScripter::JNI_VM);
     wrapper.env->CallVoidMethod(ONScripter::JavaONScripter, ONScripter::JavaOnFinish);
 #endif
+    return 0;
 }

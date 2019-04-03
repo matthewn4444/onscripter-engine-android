@@ -1,0 +1,13 @@
+# CMakeLists for libmad
+PROJECT ( MAD )
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+
+SET ( name mad )
+FILE ( GLOB_RECURSE	source_files *.c )
+
+INCLUDE_DIRECTORIES ( android )
+
+ADD_LIBRARY             ( ${name} STATIC ${source_files} )
+SET_TARGET_PROPERTIES   ( ${name} PROPERTIES COMPILE_FLAGS "-DHAVE_CONFIG_H -DFPM_DEFAULT")
+
+INSTALL (TARGETS ${name} DESTINATION lib)
