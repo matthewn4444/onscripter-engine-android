@@ -43,6 +43,7 @@ extern "C" void waveCallback( int channel );
 
 #ifdef ANDROID
 double      ONScripter::Sentence_font_scale = DEFAULT_SENTENCE_SCALE;
+bool        ONScripter::Use_java_io = false;
 JavaVM *    ONScripter::JNI_VM = NULL;
 jobject     ONScripter::JavaONScripter = NULL;
 jmethodID   ONScripter::JavaPlayVideo = NULL;
@@ -51,6 +52,8 @@ jmethodID   ONScripter::JavaReceiveMessage = NULL;
 jmethodID   ONScripter::JavaOnLoadFile = NULL;
 jmethodID   ONScripter::JavaOnFinish = NULL;
 jmethodID   ONScripter::JavaGetFD = NULL;
+jmethodID   ONScripter::JavaGetStat = NULL;
+jmethodID   ONScripter::JavaMkdir = NULL;
 jclass      ONScripter::JavaONScripterClass = NULL;
 
 const char* ONScripter::MESSAGE_SAVE_EXIST = NULL;
@@ -1304,6 +1307,15 @@ void ONScripter::loadEnvData()
             save_dir = new char[ strlen(archive_path) + strlen(save_dir_envdata) + 2 ];
             sprintf( save_dir, "%s%s%c", archive_path, save_dir_envdata, DELIMITER );
             script_h.setSaveDir(save_dir);
+
+            // Check if save_dir exists, if not create the folder
+            struct stat buf;
+            if ( stat_ons( save_dir, &buf ) != 0 ){
+                // Does not exist try making it
+                if (mkdir(save_dir, 00755) != 0) {
+                    loge(stderr, "Unable to create save directory from envdata");
+                }
+            }
         }
         automode_time = readInt();
     }

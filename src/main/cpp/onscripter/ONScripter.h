@@ -109,6 +109,8 @@ public:
     static jmethodID JavaOnLoadFile;
     static jmethodID JavaOnFinish;
     static jmethodID JavaGetFD;
+    static jmethodID JavaGetStat;
+    static jmethodID JavaMkdir;
     static jclass JavaONScripterClass;
 
     static void setJavaEnv(JNIEnv * jniEnv, jobject thiz) {
@@ -127,6 +129,8 @@ public:
         JavaOnLoadFile = jniEnv->GetMethodID(JavaONScripterClass,"onLoadFile", "(Ljava/lang/String;Ljava/lang/String;)V");
         JavaOnFinish = jniEnv->GetMethodID(JavaONScripterClass,"onFinish", "()V");
         JavaGetFD = jniEnv->GetMethodID(JavaONScripterClass, "getFD", "([CI)I");
+        JavaGetStat = jniEnv->GetMethodID(JavaONScripterClass, "getStat", "([C)J");
+        JavaMkdir = jniEnv->GetMethodID(JavaONScripterClass, "mkdir", "([C)I");
         JavaSendException = jniEnv->GetMethodID(JavaONScripterClass,"receiveException",
             "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
     }
@@ -139,6 +143,8 @@ public:
     int getSentenceFontSize() {
         return sentence_font.og_font_size_xy[1];
     }
+
+    static bool Use_java_io;
 #endif
 
     // ----------------------------------------

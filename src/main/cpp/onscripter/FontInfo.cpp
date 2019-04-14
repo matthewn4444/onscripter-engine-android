@@ -31,6 +31,19 @@
 extern int psp_power_resume_number;
 #endif
 
+TTF_Font* TTF_OpenFont2(const char* name, int ptsize) {
+    FILE* fp = fopen(name, "r");
+    if ( fp == NULL ) {
+        return NULL;
+    }
+    SDL_RWops *rw = SDL_RWFromFP(fp, SDL_TRUE);
+    if ( rw == NULL ) {
+        TTF_SetError(SDL_GetError());
+        return NULL;
+    }
+    return TTF_OpenFontIndexRW(rw, 1, ptsize, 0);
+}
+
 static struct FontContainer{
     FontContainer *next;
     int size;
@@ -111,9 +124,9 @@ void *FontInfo::openFont( char *font_file, int ratio1, int ratio2 )
         fc->next->power_resume_number = psp_power_resume_number;
         strcpy(fc->next->name, font_file);
 #else
-        fc->next->font[0] = TTF_OpenFont( font_file, font_size * ratio1 / ratio2 );
+        fc->next->font[0] = TTF_OpenFont2( font_file, font_size * ratio1 / ratio2 );
 #if (SDL_TTF_MAJOR_VERSION>=2) && (SDL_TTF_MINOR_VERSION>=0) && (SDL_TTF_PATCHLEVEL>=10)
-        fc->next->font[1] = TTF_OpenFont( font_file, font_size * ratio1 / ratio2 );
+        fc->next->font[1] = TTF_OpenFont2( font_file, font_size * ratio1 / ratio2 );
         TTF_SetFontOutline(fc->next->font[1], 1);
 #endif
 #endif

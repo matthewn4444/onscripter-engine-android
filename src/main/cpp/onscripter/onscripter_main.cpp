@@ -123,13 +123,13 @@ JNIEXPORT void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved)
     ONScripter::JNI_VM = vm;
 };
 
-JNIEXPORT jint JNICALL 
+JNIEXPORT jint JNICALL
 JAVA_EXPORT_NAME(DemoRenderer_nativeGetWidth) ( JNIEnv* env, jobject thiz )
 {
 	return ons ? ons->getWidth() : 0;
 }
 
-JNIEXPORT jint JNICALL 
+JNIEXPORT jint JNICALL
 JAVA_EXPORT_NAME(DemoRenderer_nativeGetHeight) ( JNIEnv* env, jobject thiz )
 {
 	return ons ? ons->getHeight() : 0;
@@ -172,14 +172,43 @@ void playVideoAndroid(const char *filename, bool click_flag, bool loop_flag)
     delete[] jc;
 }
 
+int stat_ons(const char* path, struct stat *buf)
+{
+    if (!ONScripter::Use_java_io) {
+        return stat(path, buf);
+    }
+
+    JNIWrapper wrapper(ONScripter::JNI_VM);
+    JNIEnv * jniEnv = wrapper.env;
+
+    jchar *jc = new jchar[strlen(path)];
+    for (int i=0 ; i<strlen(path) ; i++)
+        jc[i] = path[i];
+    jcharArray jca = jniEnv->NewCharArray(strlen(path));
+    jniEnv->SetCharArrayRegion(jca, 0, strlen(path), jc);
+    jlong time = jniEnv->CallLongMethod( ONScripter::JavaONScripter, ONScripter::JavaGetStat, jca );
+    jniEnv->DeleteLocalRef(jca);
+    delete[] jc;
+
+    if (time == -1) {
+        return -1;
+    }
+    if (buf) {
+        // Convert milliseconds to seconds
+        buf->st_mtime = time / 1000;
+    }
+    return 0;
+}
+
 #undef fopen
 FILE *fopen_ons(const char *path, const char *mode)
 {
+    if (!ONScripter::Use_java_io) {
+        return fopen(path, mode);
+    }
+
     int mode2 = 0;
     if (mode[0] == 'w') mode2 = 1;
-
-    FILE *fp = fopen(path, mode);
-    if (fp || mode2 ==0) return fp;
 
     JNIWrapper wrapper(ONScripter::JNI_VM);
     JNIEnv * jniEnv = wrapper.env;
@@ -194,6 +223,26 @@ FILE *fopen_ons(const char *path, const char *mode)
     delete[] jc;
 
     return fdopen(fd, mode);
+}
+
+#undef mkdir
+int mkdir_ons(const char* path, mode_t mode) {
+    if (!ONScripter::Use_java_io) {
+        return mkdir(path, mode);
+    }
+
+    JNIWrapper wrapper(ONScripter::JNI_VM);
+    JNIEnv * jniEnv = wrapper.env;
+
+    jchar *jc = new jchar[strlen(path)];
+    for (int i=0 ; i<strlen(path) ; i++)
+        jc[i] = path[i];
+    jcharArray jca = jniEnv->NewCharArray(strlen(path));
+    jniEnv->SetCharArrayRegion(jca, 0, strlen(path), jc);
+    int ret = jniEnv->CallIntMethod( ONScripter::JavaONScripter, ONScripter::JavaMkdir, jca );
+    jniEnv->DeleteLocalRef(jca);
+    delete[] jc;
+    return ret;
 }
 }
 #endif
@@ -365,6 +414,9 @@ int main( int argc, char **argv )
             }
             else if ( !strcmp( argv[0]+1, "-audio-hq" )){
                 ons->enableHQAudio();
+            }
+            else if ( !strcmp( argv[0]+1, "-use-java-io" ) ) {
+                ONScripter::Use_java_io = true;
             }
 #endif
             else{

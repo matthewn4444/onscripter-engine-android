@@ -53,7 +53,7 @@ void ONScripter::searchSaveFile( SaveFileInfo &save_file_info, int no )
     sprintf( file_name, "%ssave%d.dat", save_dir?save_dir:archive_path, no );
     struct stat buf;
     struct tm *tm;
-    if ( stat( file_name, &buf ) != 0 ){
+    if ( stat_ons( file_name, &buf ) != 0 ){
         save_file_info.valid = false;
         return;
     }
@@ -265,7 +265,7 @@ int ONScripter::writeSaveFile( int no, const char *savestr )
 
     char filename[32];
     sprintf( filename, "save%d.dat", no );
-        
+
     memcpy(file_io_buf, save_data_buf, save_data_len);
     file_io_buf_ptr = save_data_len;
     if (saveFileIOBuf( filename, 0, savestr )){
@@ -277,10 +277,11 @@ int ONScripter::writeSaveFile( int no, const char *savestr )
         return -1;
     }
 
-    size_t magic_len = strlen(SAVEFILE_MAGIC_NUMBER)+2;
-    sprintf( filename, RELATIVEPATH "sav%csave%d.dat", DELIMITER, no );
-    if (saveFileIOBuf( filename, magic_len, savestr ))
-        logw( stderr, "can't open save file %s for writing (not an error)\n", filename );
+    // Not needed, never gets read, I think below is only for backups?
+//    size_t magic_len = strlen(SAVEFILE_MAGIC_NUMBER)+2;
+//    sprintf( filename, RELATIVEPATH "sav%csave%d.dat", DELIMITER, no );
+//    if (saveFileIOBuf( filename, magic_len, savestr ))
+//        logw( stderr, "can't open save file %s for writing (not an error)\n", filename );
   
     return 0;
 }

@@ -1,24 +1,51 @@
 package com.onscripter;
 
 import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.graphics.Point;
 import android.media.AudioManager;
+import android.net.Uri;
+import android.os.Build;
+import android.provider.DocumentsContract;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 class DemoRenderer extends GLSurfaceView_SDL.Renderer {
-    public DemoRenderer(String currentDirectory, String fontPath, boolean useHQAudio,
+    public DemoRenderer(@NonNull Uri gameUri, @Nullable String fontPath, boolean useHQAudio,
                         boolean renderOutline) {
-        mCurrentDirectory = currentDirectory;
         mFontPath = fontPath;
         mShouldRenderOutline = renderOutline;
         mUseHQAudio = useHQAudio;
+
+        // Get the tree uri if supported
+        if (ContentResolver.SCHEME_CONTENT.equals(gameUri.getScheme())) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                mTreeUri = DocumentsContract.buildDocumentUriUsingTree(gameUri,
+                        DocumentsContract.getTreeDocumentId(gameUri));
+                mGameDirectory = DocumentsContract.getDocumentId(gameUri);
+            } else {
+                throw new IllegalStateException("Uri game path is incorrect, content scheme " +
+                        "cannot be used for lower than lollipop");
+            }
+        } else {
+            if (gameUri.getPath() == null) {
+                throw new NullPointerException("Cannot have null path for game uri "
+                        + gameUri.toString());
+            }
+            mTreeUri = null;
+            mGameDirectory = gameUri.getPath();
+        }
     }
 
     @Override
@@ -42,38 +69,28 @@ class DemoRenderer extends GLSurfaceView_SDL.Renderer {
     }
 
     void doNativeInit(boolean openOnly) {
-        int n = 2;
+        final List<String> flags = new ArrayList<>();
+        flags.add("--language");
+        flags.add(Locale.getDefault().getLanguage());
+        if (mTreeUri != null) {
+            flags.add("--use-java-io");
+        }
         if (openOnly) {
-            n++;
+            flags.add("--open-only");
         }
         if (mShouldRenderOutline) {
-            n++;
+            flags.add("--render-font-outline");
         }
         if (mUseHQAudio) {
-            n++;
+            flags.add("--audio-hq");
         }
         if (mFontPath != null) {
-            n += 2;
+            flags.add("-f");
+            flags.add(mFontPath);
         }
-        String[] arg = new String[n];
-        n = 0;
-        arg[n++] = "--language";
-        arg[n++] = Locale.getDefault().getLanguage();
-        if (openOnly) {
-            arg[n++] = "--open-only";
-        }
-        if (mShouldRenderOutline) {
-            arg[n++] = "--render-font-outline";
-        }
-        if (mUseHQAudio) {
-            arg[n++] = "--audio-hq";
-        }
-        if (mFontPath != null) {
-            arg[n++] = "-f";
-            arg[n++] = mFontPath;
-        }
-        nativeInit(mCurrentDirectory, arg);
 
+        // If uses file scheme send the directory
+        nativeInit(mTreeUri != null ? null : mGameDirectory, flags.toArray(new String[0]));
     }
 
     // Called from native code, returns 1 on success, 0 when GL context lost
@@ -106,24 +123,31 @@ class DemoRenderer extends GLSurfaceView_SDL.Renderer {
     }
 
     private native void nativeInitJavaCallbacks();
-    private native void nativeInit(String currentDirectoryPath, String[] arg);
+    private native void nativeInit(String path, String[] arg);
     private native void nativeResize(int w, int h);
     private native void nativeDone();
     native int nativeGetWidth();
     native int nativeGetHeight();
 
-    final String mCurrentDirectory;
+    private final static String TAG = "DemoRenderer";
+
+    @NonNull
+    final String mGameDirectory;
+    @Nullable
+    final Uri mTreeUri;
+    @Nullable
     private final String mFontPath;
     private final boolean mUseHQAudio;
     private final boolean mShouldRenderOutline;
 }
 
 class DemoGLSurfaceView extends GLSurfaceView_SDL {
-    public DemoGLSurfaceView(Context context, String currentDirectory, String fontPath,
-                             boolean useHQAudio, boolean shouldRenderOutline) {
+    public DemoGLSurfaceView(@NonNull Context context, @NonNull Uri gameUri,
+                             @Nullable String fontPath, boolean useHQAudio,
+                             boolean shouldRenderOutline) {
         super(context);
         nativeInitJavaCallbacks();
-        mRenderer = new DemoRenderer(currentDirectory, fontPath, useHQAudio,
+        mRenderer = new DemoRenderer(gameUri, fontPath, useHQAudio,
                 shouldRenderOutline);
         setRenderer(mRenderer);
         mExitted = false;
@@ -221,8 +245,14 @@ class DemoGLSurfaceView extends GLSurfaceView_SDL {
         mExitted = true;
     }
 
-    protected String getCurrentDirectory() {
-        return mRenderer.mCurrentDirectory;
+    @NonNull
+    protected String getGamePath() {
+        return mRenderer.mGameDirectory;
+    }
+
+    @Nullable
+    protected Uri getTreeUri() {
+        return mRenderer.mTreeUri;
     }
 
     private final Runnable mSaveGameSettingsRunnable = new Runnable() {

@@ -35,10 +35,11 @@ JAVA_EXPORT_NAME(DemoRenderer_nativeInit) ( JNIEnv*  env, jobject thiz, jstring 
 	}
 
 	// Set current directory
-	const char *currentDirectoryPath = (*env)->GetStringUTFChars(env, currentDirectoryPath_j, 0);
-	chdir(currentDirectoryPath);
-	(*env)->ReleaseStringUTFChars(env, currentDirectoryPath_j, currentDirectoryPath);
-
+    if (currentDirectoryPath_j) {
+        const char *currentDirectoryPath = (*env)->GetStringUTFChars(env, currentDirectoryPath_j, 0);
+        chdir(currentDirectoryPath);
+        (*env)->ReleaseStringUTFChars(env, currentDirectoryPath_j, currentDirectoryPath);
+    }
 	SDL_main( argc, argv );
 };
 

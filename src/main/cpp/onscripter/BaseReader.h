@@ -28,7 +28,12 @@
 #ifdef ANDROID
 #include "ONScripter_log.h"
 extern "C" FILE *fopen_ons(const char *str, const char *mode);
+extern "C" int mkdir_ons(const char *str, mode_t mode);
+extern "C" int stat_ons(const char *str, struct stat * buf);
 #define fopen fopen_ons
+#define mkdir mkdir_ons
+#else
+#define stat_ons stat
 #endif
 
 #ifndef SEEK_END
