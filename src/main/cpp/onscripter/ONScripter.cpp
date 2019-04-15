@@ -194,6 +194,9 @@ void ONScripter::initSDL()
 #endif
     underline_value = script_h.screen_height;
 
+    // Set a focused window so it doesn't crash SDL_GetWindowSize runs
+    SDL_WarpMouse(0, 0);
+
 #ifndef USE_SDL_RENDERER
     if ( screen_surface == NULL ) {
         errorAndExit( "Couldn't set %dx%dx%d video mode: %s\n",
