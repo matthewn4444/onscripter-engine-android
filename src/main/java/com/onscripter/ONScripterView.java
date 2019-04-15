@@ -30,9 +30,9 @@ import androidx.annotation.Nullable;
  * if you want to. Finally it is your job to set the size of this view.
  *
  * You must also pass the following events from your activity for this ONScripterView
- * to act normally: <b>onPause, onResume, and onUserLeaveHint</b> and also on the
- * <i>onDestroy</i> event you should call <b>exitApp()</b>. Fail to do any of these
- * will cause the game to crash.
+ * to act normally: <b>onPause and onResume</b> and should not call exitApp() when <i>onDestroy</i>
+ * occurs because it will freeze, please exit the app before onStop() or finish() when
+ * onGameFinished() occurs.
  * @author Matthew Ng
  *
  */
@@ -138,7 +138,6 @@ public class ONScripterView extends DemoGLSurfaceView {
 
     private ONScripterEventListener mListener;
     boolean mIsVideoPlaying = false;
-    boolean mHasUserLeaveHint = false;
     boolean mHasExit = false;
 
     @Override
@@ -159,13 +158,6 @@ public class ONScripterView extends DemoGLSurfaceView {
     public void onResume() {
         super.onResume();
         mAudioThread.onResume();
-        mHasUserLeaveHint = false;
-    }
-
-    public void onStop() {
-        if (mHasUserLeaveHint) {
-            super.onUserLeaveHint();
-        }
     }
 
     /**
@@ -218,14 +210,6 @@ public class ONScripterView extends DemoGLSurfaceView {
     public void setFontScaling(double scaleFactor) {
         if (!mHasExit) {
             nativeSetSentenceFontScale(scaleFactor);
-        }
-    }
-
-    @Override
-    public void onUserLeaveHint() {
-        mHasUserLeaveHint = true;
-        if (!mIsVideoPlaying) {
-            super.onUserLeaveHint();
         }
     }
 

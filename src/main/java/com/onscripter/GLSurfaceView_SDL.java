@@ -35,6 +35,7 @@ import javax.microedition.khronos.opengles.GL10;
 
 import android.content.Context;
 import android.opengl.GLSurfaceView;
+import android.os.Handler;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -431,18 +432,6 @@ public class GLSurfaceView_SDL extends SurfaceView implements SurfaceHolder.Call
      */
     public void onResume() {
         mGLThread.onResume();
-    }
-
-    /**
-     * Inform the view that the activity is going to be minimized. The owner of this
-     * view must call this method when user leaves the activity. Calling this method
-     * will recreate the OpenGL surface and resume the rendering thread only if user
-     * powers off and then back on the device.
-     * Must not be called before a renderer has been set.
-     */
-    public void onUserLeaveHint()
-    {
-        mGLThread.onUserLeaveHint();
     }
 
     /**
@@ -886,7 +875,6 @@ public class GLSurfaceView_SDL extends SurfaceView implements SurfaceHolder.Call
         GLThread(Renderer renderer) {
             super();
             mDone = false;
-            mUserMinimizedApp = false;
             mWidth = 0;
             mHeight = 0;
             mRequestRender = true;
@@ -1075,20 +1063,10 @@ public class GLSurfaceView_SDL extends SurfaceView implements SurfaceHolder.Call
                 mPaused = false;
                 notify();
             }
-            if (mUserMinimizedApp == false){ // e.g. resume from power button
-                surfaceCreated();
-                onWindowResize(mWidthBack, mHeightBack);
-            }
-            synchronized (this){
-                mUserMinimizedApp = false;
-            }
-        }
+            onWindowResize(mWidthBack, mHeightBack);
 
-        public void onUserLeaveHint()
-        {
-            synchronized (this) {
-                mUserMinimizedApp = true;
-            }
+            // In case older versions of Android don't create surface do it after main thread yields
+            post(mSurfaceCreatedRunnable);
         }
 
         public void onWindowResize(int w, int h) {
@@ -1134,9 +1112,17 @@ public class GLSurfaceView_SDL extends SurfaceView implements SurfaceHolder.Call
             return null;
         }
 
+        private final Runnable mSurfaceCreatedRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (!mHasSurface) {
+                    mGLThread.surfaceCreated();
+                }
+            }
+        };
+
         private boolean mDone;
         private boolean mPaused;
-        private boolean mUserMinimizedApp;
         private boolean mHasSurface;
         private int mWidth;
         private int mHeight;
@@ -1190,4 +1176,6 @@ public class GLSurfaceView_SDL extends SurfaceView implements SurfaceHolder.Call
     private EGLConfigChooser mEGLConfigChooser;
     private GLWrapper mGLWrapper;
     private int mDebugFlags;
+
+    private final Handler mHandler = new Handler();
 }
