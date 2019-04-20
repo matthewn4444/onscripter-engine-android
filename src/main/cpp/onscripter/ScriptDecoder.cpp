@@ -313,6 +313,7 @@ unsigned short UTF8Decoder::convertNextChar(char* buffer)
 bool UTF8Decoder::canConvertNextChar(char* buffer, int* outNumBytes)
 {
     int length = getByteLength(*buffer);
+    if (length == UTF8_ERROR) return false;
     *outNumBytes = length;
     if (length > 1) return true;
     if (JapaneseDecoder::canConvertNextChar(buffer, outNumBytes)) return true;
