@@ -655,6 +655,8 @@ void ONScripter::resetSub()
 
     refresh_shadow_text_mode = REFRESH_NORMAL_MODE | REFRESH_SHADOW_MODE | REFRESH_TEXT_MODE;
     erase_text_window_mode = 1;
+    setInternalSkipMode(false);
+    setInternalSinglePageMode(false);
     skip_mode = SKIP_NONE;
     monocro_flag = false;
     monocro_color[0] = monocro_color[1] = monocro_color[2] = 0;
@@ -1281,7 +1283,7 @@ void ONScripter::loadEnvData()
 {
     volume_on_flag = true;
     text_speed_no = 1;
-    skip_mode &= ~SKIP_TO_EOP;
+    setInternalSinglePageMode(false);
     default_env_font = NULL;
     cdaudio_on_flag = true;
     default_cdrom_drive = NULL;
@@ -1293,7 +1295,7 @@ void ONScripter::loadEnvData()
         if (readInt() == 1 && window_mode == false) menu_fullCommand();
         if (readInt() == 0) volume_on_flag = false;
         text_speed_no = readInt();
-        if (readInt() == 1) skip_mode |= SKIP_TO_EOP;
+        if (readInt() == 1) setInternalSinglePageMode(true);
         readStr( &default_env_font );
         if (default_env_font == NULL)
             setStr(&default_env_font, DEFAULT_ENV_FONT);
@@ -1415,6 +1417,7 @@ int ONScripter::getNumberFromBuffer( const char **buf )
 }
 
 void ONScripter::setInternalSkipMode(bool enabled) {
+    if (enabled == ((skip_mode & SKIP_NORMAL) != 0)) return;
     if (enabled) {
         skip_mode |= SKIP_NORMAL;
     } else {
@@ -1428,11 +1431,26 @@ void ONScripter::setInternalSkipMode(bool enabled) {
 }
 
 void ONScripter::setInternalAutoMode(bool enabled) {
+    if (automode_flag == enabled) return;
     automode_flag = enabled;
 #ifdef ANDROID
     JNIWrapper wrapper(JNI_VM);
     jboolean jb = enabled ? JNI_TRUE : JNI_FALSE;
     wrapper.env->CallStaticVoidMethod(JavaONScripterClass, JavaReceiveMessage, ANDROID_MSG_AUTO_MODE, jb);
+#endif
+}
+
+void ONScripter::setInternalSinglePageMode(bool enabled) {
+    if (enabled == ((skip_mode & SKIP_TO_EOP) != 0)) return;
+    if (enabled) {
+        skip_mode |= SKIP_TO_EOP;
+    } else {
+        skip_mode &= ~SKIP_TO_EOP;
+    }
+#ifdef ANDROID
+    JNIWrapper wrapper(JNI_VM);
+    jboolean jb = enabled ? JNI_TRUE : JNI_FALSE;
+    wrapper.env->CallStaticVoidMethod(JavaONScripterClass, JavaReceiveMessage, ANDROID_MSG_SINGLE_PAGE_MODE, jb);
 #endif
 }
 

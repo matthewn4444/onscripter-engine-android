@@ -12,6 +12,9 @@ import android.os.ParcelFileDescriptor;
 import android.provider.DocumentsContract;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.onscripter.exception.NativeONSException;
 
 import java.io.File;
@@ -19,9 +22,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.Objects;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 /**
  * This class is a wrapper to render ONScripter games inside a single view object
@@ -41,15 +41,17 @@ public class ONScripterView extends DemoGLSurfaceView {
 
     private static final int MSG_AUTO_MODE = 1;
     private static final int MSG_SKIP_MODE = 2;
-    private static final int NUM_CONTROL_MODES = 2;
+    private static final int MSG_SINGLE_PAGE_MODE = 3;
+    private static final int MSG_ERROR_MESSAGE = 4;
 
     public interface ONScripterEventListener {
-        public void autoStateChanged(boolean selected);
-        public void skipStateChanged(boolean selected);
-        public void videoRequested(@NonNull Uri videoUri, boolean clickToSkip, boolean shouldLoop);
-        public void onNativeError(NativeONSException e, String line, String backtrace);
-        public void onUserMessage(UserMessage messageId);
-        public void onGameFinished();
+        void autoStateChanged(boolean selected);
+        void skipStateChanged(boolean selected);
+        void singlePageStateChanged(boolean selected);
+        void videoRequested(@NonNull Uri videoUri, boolean clickToSkip, boolean shouldLoop);
+        void onNativeError(NativeONSException e, String line, String backtrace);
+        void onUserMessage(UserMessage messageId);
+        void onGameFinished();
     }
 
     private static class UpdateHandler extends Handler {
@@ -62,7 +64,7 @@ public class ONScripterView extends DemoGLSurfaceView {
         {
             ONScripterView view = mThisView.get();
             if (view != null) {
-                if (msg.what <= NUM_CONTROL_MODES) {
+                if (msg.what < MSG_ERROR_MESSAGE) {
                     view.updateControls(msg.what, (Boolean)msg.obj);
                 } else {
                     view.sendUserMessage(msg.what);
@@ -123,7 +125,6 @@ public class ONScripterView extends DemoGLSurfaceView {
     public ONScripterView(@NonNull Context context, @NonNull Uri gameUri, @Nullable String fontPath,
                           boolean useHQAudio, boolean shouldRenderOutline) {
         super(context, gameUri, fontPath, useHQAudio, shouldRenderOutline);
-
         mAudioThread = new AudioThread();
         mMainHandler = new Handler(Looper.getMainLooper());
         sHandler = new UpdateHandler(this);
@@ -425,6 +426,9 @@ public class ONScripterView extends DemoGLSurfaceView {
                 case MSG_SKIP_MODE:
                     mListener.skipStateChanged(flag);
                     break;
+                case MSG_SINGLE_PAGE_MODE:
+                    mListener.singlePageStateChanged(flag);
+                    break;
             }
         }
     }
@@ -432,7 +436,7 @@ public class ONScripterView extends DemoGLSurfaceView {
     private void sendUserMessage(int messageIdFromNDK) {
         if (mListener != null) {
             switch(messageIdFromNDK) {
-                case 3:
+                case MSG_ERROR_MESSAGE:
                     mListener.onUserMessage(UserMessage.CORRUPT_SAVE_FILE);
                     break;
             }

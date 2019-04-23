@@ -1031,10 +1031,7 @@ bool ONScripter::keyPressEvent( SDL_KeyboardEvent *event )
             return true;
         }
         else if (event->keysym.sym == SDLK_o){
-            if (skip_mode & SKIP_TO_EOP)
-                skip_mode &= ~SKIP_TO_EOP;
-            else
-                skip_mode |= SKIP_TO_EOP;
+            setInternalSinglePageMode((skip_mode & SKIP_TO_EOP) == 0);
             logv("toggle draw one page flag to %s\n", (skip_mode & SKIP_TO_EOP?"true":"false") );
             if ( skip_mode & SKIP_TO_EOP ){
                 stopAnimation( clickstr_state );

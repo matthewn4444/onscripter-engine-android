@@ -96,7 +96,8 @@ private:
     typedef enum {
         ANDROID_MSG_AUTO_MODE = 1,
         ANDROID_MSG_SKIP_MODE = 2,
-        ANDROID_MSG_CORRUPT_SAVE_FILE = 3,
+        ANDROID_MSG_SINGLE_PAGE_MODE = 3,
+        ANDROID_MSG_CORRUPT_SAVE_FILE = 4,
     } MessageType_t;
 
 public:
@@ -544,6 +545,7 @@ private:
 #endif
     void setInternalAutoMode(bool enabled);
     void setInternalSkipMode(bool enabled);
+    void setInternalSinglePageMode(bool enabled);
 
     // ----------------------------------------
     // variables and methods relevant to animation

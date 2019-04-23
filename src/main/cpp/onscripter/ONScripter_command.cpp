@@ -1634,13 +1634,13 @@ int ONScripter::menu_fullCommand()
 
 int ONScripter::menu_click_pageCommand()
 {
-    skip_mode |= SKIP_TO_EOP;
+    setInternalSinglePageMode(true);
     return RET_CONTINUE;
 }
 
 int ONScripter::menu_click_defCommand()
 {
-    skip_mode &= ~SKIP_TO_EOP;
+    setInternalSinglePageMode(false);
     return RET_CONTINUE;
 }
 
