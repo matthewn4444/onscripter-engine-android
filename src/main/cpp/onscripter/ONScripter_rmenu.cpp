@@ -182,6 +182,20 @@ int ONScripter::executeSystemCall()
 
 void ONScripter::executeSystemMenu()
 {
+    // Openning system menu take a screenshot before hand
+    if ( screenshot_folder ) {
+#ifdef USE_SDL_RENDERER
+        SDL_Rect rect = {(device_width -screen_device_width)/2,
+                 (device_height-screen_device_height)/2,
+                 screen_device_width, screen_device_height};
+        SDL_LockSurface(screenshot_surface);
+        SDL_RenderReadPixels(renderer, &rect, screenshot_surface->format->format, screenshot_surface->pixels, screenshot_surface->pitch);
+        SDL_UnlockSurface(screenshot_surface);
+#else
+        SDL_BlitSurface(screen_surface, NULL, screenshot_surface, NULL);
+#endif
+    }
+
     current_font = &menu_font;
 
     if ( menuselectvoice_file_name[MENUSELECTVOICE_OPEN] )

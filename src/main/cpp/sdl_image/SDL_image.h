@@ -123,6 +123,10 @@ extern DECLSPEC SDL_Surface * SDLCALL IMG_LoadXV_RW(SDL_RWops *src);
 
 extern DECLSPEC SDL_Surface * SDLCALL IMG_ReadXPMFromArray(char **xpm);
 
+/* Individual saving functions */
+extern DECLSPEC int SDLCALL IMG_SaveJPG(SDL_Surface *surface, const char *file, int quality);
+extern DECLSPEC int SDLCALL IMG_SaveJPG_RW(SDL_Surface *surface, SDL_RWops *dst, int freedst, int quality);
+
 /* We'll use SDL for reporting errors */
 #define IMG_SetError	SDL_SetError
 #define IMG_GetError	SDL_GetError

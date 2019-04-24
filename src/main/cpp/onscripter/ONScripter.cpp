@@ -267,6 +267,7 @@ ONScripter::ONScripter()
     cdrom_drive_number = 0;
     cdaudio_flag = false;
     default_font = NULL;
+    screenshot_folder = NULL;
     registry_file = NULL;
     setStr( &registry_file, REGISTRY_FILE );
     dll_file = NULL;
@@ -329,6 +330,11 @@ void ONScripter::setCDNumber(int cdrom_drive_number)
 void ONScripter::setFontFile(const char *filename)
 {
     setStr(&default_font, filename);
+}
+
+void ONScripter::setScreenshotFolder(const char *folderPath)
+{
+    setStr(&screenshot_folder, folderPath);
 }
 
 void ONScripter::setRegistryFile(const char *filename)

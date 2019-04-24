@@ -42,6 +42,8 @@
 #define EDIT_MODE_PREFIX "[EDIT MODE]  "
 #define EDIT_SELECT_STRING "MP3 vol (m)  SE vol (s)  Voice vol (v)  Numeric variable (n)"
 
+#define MENU_MODE (WAIT_TIMER_MODE | WAIT_INPUT_MODE | WAIT_BUTTON_MODE)
+
 static SDL_TimerID timer_id = NULL;
 SDL_TimerID timer_cdaudio_id = NULL;
 SDL_TimerID timer_bgmfade_id = NULL;
@@ -470,6 +472,20 @@ bool ONScripter::mousePressEvent( SDL_MouseButtonEvent *event )
             else
                 system_menu_mode = SYSTEM_WINDOWERASE;
         }
+
+        // When menu might be triggered, copy screen to screenshot
+        if ( screenshot_folder && (event_mode & MENU_MODE) == MENU_MODE ){
+#ifdef USE_SDL_RENDERER
+            SDL_Rect rect = {(device_width -screen_device_width)/2,
+                     (device_height-screen_device_height)/2,
+                     screen_device_width, screen_device_height};
+            SDL_LockSurface(screenshot_surface);
+            SDL_RenderReadPixels(renderer, &rect, screenshot_surface->format->format, screenshot_surface->pixels, screenshot_surface->pitch);
+            SDL_UnlockSurface(screenshot_surface);
+#else
+            SDL_BlitSurface(screen_surface, NULL, screenshot_surface, NULL);
+#endif
+        }
     }
     else if ( event->button == SDL_BUTTON_LEFT &&
               ( event->type == SDL_MOUSEBUTTONUP || btndown_flag ) ){
@@ -895,6 +911,20 @@ bool ONScripter::keyPressEvent( SDL_KeyboardEvent *event )
                     system_menu_mode = SYSTEM_MENU;
                 else
                     system_menu_mode = SYSTEM_WINDOWERASE;
+            }
+
+            // When menu might be triggered, copy screen to screenshot
+            if ( screenshot_folder && (event_mode & MENU_MODE) == MENU_MODE ){
+#ifdef USE_SDL_RENDERER
+                SDL_Rect rect = {(device_width -screen_device_width)/2,
+                     (device_height-screen_device_height)/2,
+                     screen_device_width, screen_device_height};
+                SDL_LockSurface(screenshot_surface);
+                SDL_RenderReadPixels(renderer, &rect, screenshot_surface->format->format, screenshot_surface->pixels, screenshot_surface->pitch);
+                SDL_UnlockSurface(screenshot_surface);
+#else
+                SDL_BlitSurface(screen_surface, NULL, screenshot_surface, NULL);
+#endif
             }
         }
         else if ( useescspc_flag && event->keysym.sym == SDLK_ESCAPE ){

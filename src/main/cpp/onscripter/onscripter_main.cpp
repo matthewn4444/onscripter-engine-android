@@ -418,6 +418,11 @@ int main( int argc, char **argv )
             else if ( !strcmp( argv[0]+1, "-use-java-io" ) ) {
                 ONScripter::Use_java_io = true;
             }
+            else if ( !strcmp( argv[0]+1, "-screenshot-path" ) ){
+                argc--;
+                argv++;
+                ons->setScreenshotFolder(argv[0]);
+            }
 #endif
             else{
                 logw(stderr, " unknown option %s\n", argv[0] );

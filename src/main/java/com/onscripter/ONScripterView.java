@@ -95,36 +95,12 @@ public class ONScripterView extends DemoGLSurfaceView {
     private native int nativeGetDialogFontSize();
 
     /**
-     * Default constructor
-     * @param context used for view constructor
-     * @param gameUri is the location of the game
+     * Constructor with parameters
+     * @param builder used for view constructor
      */
-    public ONScripterView(@NonNull Context context, @NonNull Uri gameUri) {
-        this(context, gameUri, null);
-    }
+    public ONScripterView(@NonNull Builder builder) {
+        super(builder);
 
-    /**
-     * Constructor with font path
-     * @param context used for view constructor
-     * @param gameUri is the location of the game
-     * @param fontPath is the location of the font
-     */
-    public ONScripterView(@NonNull Context context, @NonNull Uri gameUri,
-                          @Nullable String fontPath) {
-        this(context, gameUri, fontPath, true, false);
-    }
-
-    /**
-     * Full constructor with the outline code
-     * @param context used for view constructor
-     * @param gameUri is the location of the game
-     * @param fontPath is the location of the font
-     * @param useHQAudio should use higher quality audio, default is true
-     * @param shouldRenderOutline chooses whether to show outline on font
-     */
-    public ONScripterView(@NonNull Context context, @NonNull Uri gameUri, @Nullable String fontPath,
-                          boolean useHQAudio, boolean shouldRenderOutline) {
-        super(context, gameUri, fontPath, useHQAudio, shouldRenderOutline);
         mAudioThread = new AudioThread();
         mMainHandler = new Handler(Looper.getMainLooper());
         sHandler = new UpdateHandler(this);
@@ -440,6 +416,48 @@ public class ONScripterView extends DemoGLSurfaceView {
                     mListener.onUserMessage(UserMessage.CORRUPT_SAVE_FILE);
                     break;
             }
+        }
+    }
+
+    public static class Builder {
+        @NonNull
+        final Context context;
+        @NonNull
+        final Uri uri;
+        @Nullable
+        String fontPath;
+        @Nullable
+        String screenshotPath;
+        boolean useHQAudio;
+        boolean renderOutline;
+
+        public Builder(@NonNull Context context, @NonNull Uri gameUri) {
+            this.context = context;
+            uri = gameUri;
+        }
+
+        public Builder setFontPath(@NonNull String fontPath) {
+            this.fontPath = fontPath;
+            return this;
+        }
+
+        public Builder setScreenshotPath(@NonNull String screenshotPath) {
+            this.screenshotPath = screenshotPath;
+            return this;
+        }
+
+        public Builder useHQAudio() {
+            useHQAudio = true;
+            return this;
+        }
+
+        public Builder useRenderOutline() {
+            renderOutline = true;
+            return this;
+        }
+
+        public ONScripterView create() {
+            return new ONScripterView(this);
         }
     }
 

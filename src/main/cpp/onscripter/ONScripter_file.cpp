@@ -22,6 +22,7 @@
  */
 
 #include "ONScripter.h"
+#include <SDL_image.h>
 
 #if defined(LINUX) || defined(MACOSX) || defined(IOS)
 #include <sys/types.h>
@@ -42,6 +43,8 @@ extern "C" void c2pstrcpy(Str255 dst, const char *src);	//#include <TextUtils.h>
 #define SAVEFILE_VERSION_MAJOR 2
 #define SAVEFILE_VERSION_MINOR 8
 
+#define SCREENSHOT_COMPRESSION_LEVEL 70
+
 #define READ_LENGTH 4096
 
 void ONScripter::searchSaveFile( SaveFileInfo &save_file_info, int no )
@@ -59,7 +62,7 @@ void ONScripter::searchSaveFile( SaveFileInfo &save_file_info, int no )
     }
     time_t mtime = buf.st_mtime;
     tm = localtime( &mtime );
-        
+
     save_file_info.month  = tm->tm_mon + 1;
     save_file_info.day    = tm->tm_mday;
     save_file_info.hour   = tm->tm_hour;
@@ -173,13 +176,13 @@ char *ONScripter::readSaveStrFromFile( int no )
     int p = len - 1;
     if ( p < 3 || file_io_buf[p] != '*' || file_io_buf[p-1] != '"' ) return NULL;
     p -= 2;
-    
+
     while( file_io_buf[p] != '"' && p>0 ) p--;
     if ( file_io_buf[p] != '"' ) return NULL;
 
     len = len - p - 3;
     char *buf = new char[len+1];
-    
+
     unsigned int i;
     for (i=0 ; i<len ; i++)
         buf[i] = file_io_buf[p+i+1];
@@ -198,7 +201,7 @@ int ONScripter::loadSaveFile( int no )
         logw( stderr, "can't open save file %s\n", filename );
         return -1;
     }
-    
+
     /* ---------------------------------------- */
     /* Load magic number */
     int i;
@@ -216,7 +219,7 @@ int ONScripter::loadSaveFile( int no )
         file_io_buf_len = oldBufLen;
         return ret;
     }
-    
+
     int file_version = readChar() * 100;
     file_version += readChar();
     logv("Save file version is %d.%d\n", file_version/100, file_version%100 );
@@ -234,7 +237,7 @@ int ONScripter::loadSaveFile( int no )
         file_io_buf_len = oldBufLen;
         return ret;
     }
-    
+
     logw( stderr, "Save file is too old.\n");
     return -1;
 }
@@ -282,6 +285,56 @@ int ONScripter::writeSaveFile( int no, const char *savestr )
 //    sprintf( filename, RELATIVEPATH "sav%csave%d.dat", DELIMITER, no );
 //    if (saveFileIOBuf( filename, magic_len, savestr ))
 //        logw( stderr, "can't open save file %s for writing (not an error)\n", filename );
-  
+
+    return saveSaveScreenshot(no);
+}
+
+int ONScripter::saveSaveScreenshot(int no) {
+    if (screenshot_folder == NULL) {
+        return 0;
+    }
+
+    // Find if screenshot folder exists, if not make it
+    struct stat buf;
+    char screenshot_path[32];
+    if (save_dir) {
+        sprintf( screenshot_path, "%s%s", save_dir, screenshot_folder );
+    } else {
+        sprintf( screenshot_path, "%s", screenshot_folder );
+    }
+    if ( stat_ons( screenshot_path, &buf ) != 0 ){
+        // Does not exist try making it
+        if (mkdir(screenshot_path, 00755) != 0) {
+            fprintf(stderr, "screenshotpath: %s doesn't exist and cannot make it.\n",
+                    screenshot_path);
+            delete[] screenshot_folder;
+            screenshot_folder = NULL;
+            return 0;
+        }
+    }
+
+    // Save screenshot
+    SDL_Surface *surface = AnimationInfo::alloc32bitSurface( screen_width, screen_height, texture_format );
+#ifdef USE_SDL_RENDERER
+    SDL_Rect rect = {(device_width -screen_device_width)/2,
+                     (device_height-screen_device_height)/2,
+                     screen_device_width, screen_device_height};
+    SDL_LockSurface(surface);
+    SDL_RenderReadPixels(renderer, &rect, surface->format->format, surface->pixels, surface->pitch);
+    SDL_UnlockSurface(surface);
+#else
+    SDL_BlitSurface(screenshot_surface, NULL, surface, NULL);
+#endif
+    char filename[32];
+    sprintf( filename, "%s%c%d.jpg", screenshot_path, DELIMITER, no );
+    FILE *fp = fopen(filename, "wb");
+    if (fp){
+        SDL_RWops *rwops = SDL_RWFromFP(fp, SDL_TRUE);
+        int ret = IMG_SaveJPG_RW(surface, rwops, 1, SCREENSHOT_COMPRESSION_LEVEL);
+        if (ret != 0) {
+            return ret;
+        }
+    }
+    SDL_FreeSurface(surface);
     return 0;
 }

@@ -11,6 +11,9 @@ import android.provider.DocumentsContract;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -18,33 +21,27 @@ import java.util.Locale;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-
 class DemoRenderer extends GLSurfaceView_SDL.Renderer {
-    public DemoRenderer(@NonNull Uri gameUri, @Nullable String fontPath, boolean useHQAudio,
-                        boolean renderOutline) {
-        mFontPath = fontPath;
-        mShouldRenderOutline = renderOutline;
-        mUseHQAudio = useHQAudio;
+    public DemoRenderer(@NonNull ONScripterView.Builder builder) {
+        mBuilder = builder;
 
         // Get the tree uri if supported
-        if (ContentResolver.SCHEME_CONTENT.equals(gameUri.getScheme())) {
+        if (ContentResolver.SCHEME_CONTENT.equals(builder.uri.getScheme())) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                mTreeUri = DocumentsContract.buildDocumentUriUsingTree(gameUri,
-                        DocumentsContract.getTreeDocumentId(gameUri));
-                mGameDirectory = DocumentsContract.getDocumentId(gameUri);
+                mTreeUri = DocumentsContract.buildDocumentUriUsingTree(builder.uri,
+                        DocumentsContract.getTreeDocumentId(builder.uri));
+                mGameDirectory = DocumentsContract.getDocumentId(builder.uri);
             } else {
                 throw new IllegalStateException("Uri game path is incorrect, content scheme " +
                         "cannot be used for lower than lollipop");
             }
         } else {
-            if (gameUri.getPath() == null) {
+            if (builder.uri.getPath() == null) {
                 throw new NullPointerException("Cannot have null path for game uri "
-                        + gameUri.toString());
+                        + builder.uri.toString());
             }
             mTreeUri = null;
-            mGameDirectory = gameUri.getPath();
+            mGameDirectory = builder.uri.getPath();
         }
     }
 
@@ -78,15 +75,19 @@ class DemoRenderer extends GLSurfaceView_SDL.Renderer {
         if (openOnly) {
             flags.add("--open-only");
         }
-        if (mShouldRenderOutline) {
+        if (mBuilder.renderOutline) {
             flags.add("--render-font-outline");
         }
-        if (mUseHQAudio) {
+        if (mBuilder.useHQAudio) {
             flags.add("--audio-hq");
         }
-        if (mFontPath != null) {
+        if (mBuilder.fontPath != null) {
             flags.add("-f");
-            flags.add(mFontPath);
+            flags.add(mBuilder.fontPath);
+        }
+        if (mBuilder.screenshotPath != null) {
+            flags.add("--screenshot-path");
+            flags.add(mBuilder.screenshotPath);
         }
 
         // If uses file scheme send the directory
@@ -135,20 +136,15 @@ class DemoRenderer extends GLSurfaceView_SDL.Renderer {
     final String mGameDirectory;
     @Nullable
     final Uri mTreeUri;
-    @Nullable
-    private final String mFontPath;
-    private final boolean mUseHQAudio;
-    private final boolean mShouldRenderOutline;
+    @NonNull
+    final ONScripterView.Builder mBuilder;
 }
 
 class DemoGLSurfaceView extends GLSurfaceView_SDL {
-    public DemoGLSurfaceView(@NonNull Context context, @NonNull Uri gameUri,
-                             @Nullable String fontPath, boolean useHQAudio,
-                             boolean shouldRenderOutline) {
-        super(context);
+    public DemoGLSurfaceView(@NonNull ONScripterView.Builder builder) {
+        super(builder.context);
         nativeInitJavaCallbacks();
-        mRenderer = new DemoRenderer(gameUri, fontPath, useHQAudio,
-                shouldRenderOutline);
+        mRenderer = new DemoRenderer(builder);
         setRenderer(mRenderer);
         mExitted = false;
         mRenderer.doNativeInit(true);

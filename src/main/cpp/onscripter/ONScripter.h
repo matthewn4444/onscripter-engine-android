@@ -153,6 +153,7 @@ public:
     void enableCDAudio();
     void setCDNumber(int cdrom_drive_number);
     void setFontFile(const char *filename);
+    void setScreenshotFolder(const char* folderPath);
     void setRegistryFile(const char *filename);
     void setDLLFile(const char *filename);
     void setArchivePath(const char *path);
@@ -413,6 +414,7 @@ private:
     // start-up options
     bool cdaudio_flag;
     char *default_font;
+    char *screenshot_folder;
     char *registry_file;
     char *dll_file;
     char *getret_str;
@@ -653,6 +655,8 @@ private:
 
     int  loadSaveFile2( int file_version );
     void saveSaveFile2( bool output_flag );
+
+    int saveSaveScreenshot(int no);
     
     // ----------------------------------------
     // variables and methods relevant to image
