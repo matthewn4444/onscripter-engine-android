@@ -25,12 +25,46 @@
 #define __FONT_INFO_H__
 
 #include <SDL.h>
+#include <SDL_ttf.h>
 #include "BaseReader.h"
 
 typedef unsigned char uchar3[3];
 
 class FontInfo{
 public:
+    struct FontContainer{
+        FontContainer *next;
+        int size;
+        TTF_Font *font[2];
+#if defined(PSP)
+        SDL_RWops *rw_ops;
+        int power_resume_number;
+        char name[256];
+#endif
+        FontContainer(){
+            size = 0;
+            next = NULL;
+            font[0] = font[1] = NULL;
+#if defined(PSP)
+            rw_ops = NULL;
+            power_resume_number = 0;
+#endif
+        };
+        ~FontContainer(){
+            if (next) {
+                delete next;
+                next = NULL;
+            }
+            if (font[0]) {
+                TTF_CloseFont(font[0]);
+            }
+            if (font[1]) {
+                TTF_CloseFont(font[1]);
+            }
+            font[0] = font[1] = NULL;
+        }
+    };
+
     enum { YOKO_MODE = 0,
            TATE_MODE = 1
     };
@@ -66,7 +100,7 @@ public:
 
     FontInfo();
     void reset();
-    void *openFont( char *font_file, int ratio1, int ratio2 );
+    void *openFont( FontContainer* cache, char *font_file, int ratio1, int ratio2 );
     void setTateyokoMode( int tateyoko_mode );
     int getTateyokoMode();
     int getRemainingLine();

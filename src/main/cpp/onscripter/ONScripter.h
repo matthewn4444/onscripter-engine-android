@@ -27,9 +27,8 @@
 #include "ScriptParser.h"
 #include "DirtyRect.h"
 #include "ButtonLink.h"
-#include <SDL.h>
+#include "FontInfo.h"
 #include <SDL_image.h>
-#include <SDL_ttf.h>
 #include <SDL_mixer.h>
 #if defined(USE_SMPEG)
 #include <smpeg.h>
@@ -535,7 +534,7 @@ private:
             sentence_font.size_invalidated = true;
             updateSentenceFontSizes();
 
-            if ( sentence_font.openFont( font_file, screen_ratio1, screen_ratio2 ) == NULL ){
+            if ( !sentence_font.openFont( &font_cache, font_file, screen_ratio1, screen_ratio2 ) ){
                 quit();
                 errorAndExit( "can't open font file: %s\n", font_file );
             }
@@ -858,6 +857,7 @@ private:
     bool text_on_flag; // suppress the effect of erase_text_window_mode
     bool draw_cursor_flag;
     int  indent_offset;
+    FontInfo::FontContainer font_cache;
 
     void setwindowCore();
     

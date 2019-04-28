@@ -182,14 +182,14 @@ void ONScripter::drawChar( char* text, FontInfo *info, bool flush_flag, bool loo
     if (!decoder) decoder = script_h.decoder;
 
     if ( info->ttf_font[0] == NULL ){
-        if ( info->openFont( font_file, screen_ratio1, screen_ratio2 ) == NULL ){
+        if ( info->openFont( &font_cache, font_file, screen_ratio1, screen_ratio2 ) == NULL ){
             quit();
             errorAndExit( "can't open font file: %s\n", font_file );
         }
     }
 #if defined(PSP)
     else
-        info->openFont( font_file, screen_ratio1, screen_ratio2 );
+        info->openFont( &font_cache, font_file, screen_ratio1, screen_ratio2 );
 #endif
 
     if ( info->isEndOfLine() ){

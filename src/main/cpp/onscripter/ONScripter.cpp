@@ -580,7 +580,7 @@ int ONScripter::init()
 
     readToken();
 
-    if ( sentence_font.openFont( font_file, screen_ratio1, screen_ratio2 ) == NULL ){
+    if ( !sentence_font.openFont( &font_cache, font_file, screen_ratio1, screen_ratio2) ){
         loge( stderr, "can't open font file: %s\n", font_file );
         return -1;
     }

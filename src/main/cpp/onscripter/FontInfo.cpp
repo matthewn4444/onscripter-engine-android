@@ -22,8 +22,7 @@
  */
 
 #include "FontInfo.h"
-#include <stdio.h>
-#include <SDL_ttf.h>
+#include <cstdio>
 
 #if defined(PSP)
 #include <string.h>
@@ -43,27 +42,6 @@ TTF_Font* TTF_OpenFont2(const char* name, int ptsize) {
     }
     return TTF_OpenFontIndexRW(rw, 1, ptsize, 0);
 }
-
-static struct FontContainer{
-    FontContainer *next;
-    int size;
-    TTF_Font *font[2];
-#if defined(PSP)
-    SDL_RWops *rw_ops;
-    int power_resume_number;
-    char name[256];
-#endif
-
-    FontContainer(){
-        size = 0;
-        next = NULL;
-        font[0] = font[1] = NULL;
-#if defined(PSP)
-        rw_ops = NULL;
-        power_resume_number = 0;
-#endif
-    };
-} root_font_container;
 
 FontInfo::FontInfo()
 {
@@ -95,7 +73,7 @@ void FontInfo::reset()
 #endif
 }
 
-void *FontInfo::openFont( char *font_file, int ratio1, int ratio2 )
+void *FontInfo::openFont( FontContainer* fc, char *font_file, int ratio1, int ratio2 )
 {
     int font_size;
     if ( font_size_xy[0] < font_size_xy[1] )
@@ -103,7 +81,6 @@ void *FontInfo::openFont( char *font_file, int ratio1, int ratio2 )
     else
         font_size = font_size_xy[1];
 
-    FontContainer *fc = &root_font_container;
     while( fc->next ){
         if ( fc->next->size == font_size ) break;
         fc = fc->next;
