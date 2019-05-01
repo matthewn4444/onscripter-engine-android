@@ -18,6 +18,11 @@ which covers the bulk of Europe and other non-Asian countries.
 - Supports building for newer versions of Android (the original has issues with newer versions of Android)
 - Supports using .nsa and .sar resource files in the same directory
 - Handles font size differently to allow increasing font size
+- Buildable with Android studio with CMake and the newest NDK versions (and 64bit as well)
+- Get events to Java such as game ready, load, state changes (auto, text speed, and skip)
+- Cleanly exit ONScripter and not crash
+- Optionally save screenshots to folder
+- Supports SDCards/external devices and [Android Scoped Storage](https://developer.android.com/preview/privacy/scoped-storage)
 
 ## Sample integration
 
@@ -30,32 +35,37 @@ This is a very simple example of enabling ONScripter in your app with events.
         protected void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
 
-            final boolean useHQAudio = true;
-            final boolean renderOutline = true;
+            // Defined uri either content:// (external devices like sdcard) or file://
+            Uri uri = Uri.fromFile(new File("/path/to/folder/with/game"));
 
-            // Simple Constructor
-            // Looks for default.ttf inside game folder, if not found it will crash
-            // mGame = new ONScripterView(this, "/sdcard/path/to/game/directory");
-
-            // Constructor with Specified Font
-            // mGame = new ONScripterView(this, "/sdcard/path/to/game/directory", "/path/to/font/file");
-
-            // Constructor with Specified Font and Choice of Audio
-            mGame = new ONScripterView(this, "/path/to/game/directory", "/path/to/font/file",
-            useHQAudio, renderOutline);
-
+            mGameView = new ONScripterView.Builder(getContext(), uri)
+                    // If you specify a screenshot folder name, relative to the save folder in game,
+                    // full sized screenshots are saved after each save
+                    .setScreenshotPath("")
+                    // Outline of text
+                    .useRenderOutline()
+                    // Plays higher quality audio
+                    .useHQAudio()
+                    // Set a default font path
+                    .setFontPath(defaultFontPath)
+                    .create();
             setContentView(mGame);
 
             // [Optional] Receive Events from the game
             mGame.setONScripterEventListener(new ONScripterView.ONScripterEventListener() {
                 @Override
                 public void autoStateChanged(boolean selected) {
-                    // User has turned on auto mode
+                    // User has toggled auto mode
                 }
 
                 @Override
                 public void skipStateChanged(boolean selected) {
-                    // User has turned on skip mode
+                    // User has toggled skip mode
+                }
+
+                @Override
+                public void singlePageStateChanged(boolean selected) {
+                    // User has toggled single page mode
                 }
 
                 @Override
@@ -82,6 +92,13 @@ This is a very simple example of enabling ONScripter in your app with events.
                     catch(Exception e){
                         Log.e("ONScripter", "playVideo error:  " + e.getClass().getName());
                     }
+                }
+
+                @Override
+                public void onReady() {
+                    Log.w("ONScripter", "Game is ready");
+                    // Load save file, save1.dat
+                    // mGame.loadSaveFile(1);
                 }
 
                 @Override
@@ -148,18 +165,8 @@ This is a very simple example of enabling ONScripter in your app with events.
         }
 
         @Override
-        protected void onUserLeaveHint() {
-            super.onUserLeaveHint();
-            if (mGame != null) {
-                mGame.onUserLeaveHint();
-            }
-        }
-
-        @Override
         public void onDestroy() {
-            if (mGame != null) {
-                mGame.exitApp();
-            }
+            // DO NOT EXIT APP HERE, DO IT BEFORE OR PREVIOUS ACTIVITY WILL FREEZE, will fix one day
             super.onDestroy();
         }
     }
@@ -200,6 +207,9 @@ Most of the features are specified in [ONScripterView.java](https://github.com/m
 
 - Input a scaling factor for the text where 1.0 is default
 
+**loadSaveFile(int no)**
+
+- Loads a save file in the save folder with the number represented by *save<no>.dat*. Make sure this happens after *onReady()*
 
 ## Cloning and Building
 
@@ -226,8 +236,8 @@ Most of the features are specified in [ONScripterView.java](https://github.com/m
 4. Sync and build project
 
 ## License
-Copyright (C) 2015 Matthew Ng
-Licensed under the GNU LGPL license
+Copyright (C) 2019 Matthew Ng
+Licensed under the Apache license
 
 onscripter, bzip, freetype, jpeg, libmad, lua, png, sdl, sdl_image, sdl_mixer, sdl_ttf, and tremor are distributed on theirs own license.
 
