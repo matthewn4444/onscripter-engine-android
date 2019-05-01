@@ -34,6 +34,7 @@
 #define ONS_CHUNK_EVENT   (SDL_USEREVENT+4)
 #define ONS_BREAK_EVENT   (SDL_USEREVENT+5)
 #define ONS_BGMFADE_EVENT (SDL_USEREVENT+6)
+#define ONS_LOAD_EVENT    (SDL_USEREVENT+7)
 
 // This sets up the fade event flag for use in bgm fadeout and fadein.
 #define BGM_FADEOUT 0
@@ -420,6 +421,14 @@ bool ONScripter::trapHandler()
     return true;
 }
 
+void ONScripter::startAndloadSaveFile(int no)
+{
+    SDL_Event event;
+    event.type = ONS_LOAD_EVENT;
+    event.user.code = no;
+    SDL_PushEvent(&event);
+}
+
 /* **************************************** *
  * Event handlers
  * **************************************** */
@@ -444,7 +453,7 @@ bool ONScripter::mouseMoveEvent( SDL_MouseMotionEvent *event )
 bool ONScripter::mousePressEvent( SDL_MouseButtonEvent *event )
 {
     if ( variable_edit_mode ) return false;
-    
+
     if ( automode_flag ){
         setInternalAutoMode(false);
         return false;
@@ -511,7 +520,7 @@ bool ONScripter::mousePressEvent( SDL_MouseButtonEvent *event )
                 flush( refreshMode() );
             }
         }
-            
+
         if ( event->type == SDL_MOUSEBUTTONDOWN )
             current_button_state.down_flag = true;
     }
@@ -1101,32 +1110,6 @@ bool ONScripter::keyPressEvent( SDL_KeyboardEvent *event )
             else                   menu_fullCommand();
         }
     }
-
-#ifdef ANDROID
-    // For playback to load game on Key 1 press; remove this in the future
-    if (event->keysym.sym == SDLK_1) {
-        if ( !loadSaveFile( 1 ) ){
-            dirty_rect.fill( screen_width, screen_height );
-            refreshSurface(backup_surface, &dirty_rect.bounding_box, REFRESH_NORMAL_MODE);
-            flush( refreshMode() );
-
-            saveon_flag = true;
-            internal_saveon_flag = true;
-            setInternalSkipMode(false);
-            setInternalAutoMode(false);
-            deleteButtonLink();
-            deleteSelectLink();
-            text_on_flag = false;
-            indent_offset = 0;
-            line_enter_status = 0;
-            page_enter_status = 0;
-            string_buffer_offset = 0;
-            break_flag = false;
-            flushEvent();
-        }
-    }
-#endif
-
     return false;
 }
 
@@ -1408,7 +1391,26 @@ void ONScripter::runEventLoop()
             SDL_UpdateRect( screen_surface, 0, 0, screen_width, screen_height );
 #endif
             break;
+          case ONS_LOAD_EVENT:
+            if ( !loadSaveFile( event.user.code ) ){
+                dirty_rect.fill( screen_width, screen_height );
+                refreshSurface(backup_surface, &dirty_rect.bounding_box, REFRESH_NORMAL_MODE);
+                flush( refreshMode() );
 
+                saveon_flag = true;
+                internal_saveon_flag = true;
+                setInternalSkipMode(false);
+                setInternalAutoMode(false);
+                deleteButtonLink();
+                deleteSelectLink();
+                text_on_flag = false;
+                indent_offset = 0;
+                line_enter_status = 0;
+                page_enter_status = 0;
+                string_buffer_offset = 0;
+                break_flag = false;
+            }
+            break;
           case SDL_QUIT:
             endCommand();
             break;

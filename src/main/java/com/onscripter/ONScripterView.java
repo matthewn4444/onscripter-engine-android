@@ -50,6 +50,7 @@ public class ONScripterView extends DemoGLSurfaceView {
         void singlePageStateChanged(boolean selected);
         void videoRequested(@NonNull Uri videoUri, boolean clickToSkip, boolean shouldLoop);
         void onNativeError(NativeONSException e, String line, String backtrace);
+        void onReady();
         void onUserMessage(UserMessage messageId);
         void onGameFinished();
     }
@@ -92,6 +93,7 @@ public class ONScripterView extends DemoGLSurfaceView {
 
     // Native methods
     private native void nativeSetSentenceFontScale(double scale);
+    private native void nativeLoadSaveFile(int number);
     private native int nativeGetDialogFontSize();
 
     /**
@@ -190,6 +192,12 @@ public class ONScripterView extends DemoGLSurfaceView {
         }
     }
 
+    public void loadSaveFile(int number) {
+        if (!mHasExit) {
+            nativeLoadSaveFile(number);
+        }
+    }
+
     /* Called from ONScripter.h */
     protected void playVideo(char[] filepath, boolean clickToSkip, boolean shouldLoop){
         if (!mHasExit && mListener != null) {
@@ -222,7 +230,18 @@ public class ONScripterView extends DemoGLSurfaceView {
                     NativeONSException exception = new NativeONSException(message);
                     mListener.onNativeError(exception, currentLineBuffer, backtrace);
                 }
+            }
+        });
+    }
 
+    /* Called from ONScripter.h */
+    protected void receiveReady() {
+        post(new Runnable() {
+            @Override
+            public void run() {
+                if (mListener != null) {
+                    mListener.onReady();
+                }
             }
         });
     }

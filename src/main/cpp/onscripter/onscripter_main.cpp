@@ -160,6 +160,13 @@ JNIEXPORT jint JNICALL JAVA_EXPORT_NAME(ONScripterView_nativeGetDialogFontSize) 
     return ons ? ons->getSentenceFontSize() : 0;
 }
 
+JNIEXPORT void JNICALL JAVA_EXPORT_NAME(ONScripterView_nativeLoadSaveFile) (JNIEnv * jniEnv, jobject thiz, jint number)
+{
+    if (ons) {
+        ons->startAndloadSaveFile(number);
+    }
+}
+
 void playVideoAndroid(const char *filename, bool click_flag, bool loop_flag)
 {
     JNIWrapper wrapper(ONScripter::JNI_VM);
@@ -447,6 +454,9 @@ int main( int argc, char **argv )
     if (ons->init()) {
         goto exit;
     }
+#ifdef ANDROID
+    ons->sendReady();
+#endif
     ons->executeLabel();
 #ifdef ANDROID
     } catch (ScriptException& e) {

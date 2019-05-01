@@ -48,6 +48,7 @@ JavaVM *    ONScripter::JNI_VM = NULL;
 jobject     ONScripter::JavaONScripter = NULL;
 jmethodID   ONScripter::JavaPlayVideo = NULL;
 jmethodID   ONScripter::JavaSendException = NULL;
+jmethodID   ONScripter::JavaSendReady = NULL;
 jmethodID   ONScripter::JavaReceiveMessage = NULL;
 jmethodID   ONScripter::JavaOnLoadFile = NULL;
 jmethodID   ONScripter::JavaOnFinish = NULL;
@@ -1489,6 +1490,11 @@ void ONScripter::sendException(ScriptException& exception) {
         }
         delete[] buffer;
     }
+}
+
+void ONScripter::sendReady() {
+    JNIWrapper wrapper(JNI_VM);
+    wrapper.env->CallVoidMethod( JavaONScripter, JavaSendReady);
 }
 
 void ONScripter::sendUserMessage(MessageType_t type) {

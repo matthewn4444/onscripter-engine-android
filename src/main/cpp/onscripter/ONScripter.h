@@ -106,6 +106,7 @@ public:
     static jmethodID JavaPlayVideo;
     static jmethodID JavaReceiveMessage;
     static jmethodID JavaSendException;
+    static jmethodID JavaSendReady;
     static jmethodID JavaOnLoadFile;
     static jmethodID JavaOnFinish;
     static jmethodID JavaGetFD;
@@ -133,6 +134,7 @@ public:
         JavaMkdir = jniEnv->GetMethodID(JavaONScripterClass, "mkdir", "([C)I");
         JavaSendException = jniEnv->GetMethodID(JavaONScripterClass,"receiveException",
             "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+        JavaSendReady = jniEnv->GetMethodID(JavaONScripterClass, "receiveReady", "()V");
     }
 
     static double Sentence_font_scale;
@@ -378,6 +380,7 @@ public:
     int amspCommand();
 #ifdef ANDROID
     void sendException(ScriptException& exception);
+    void sendReady();
 #endif
 
     void NSDCallCommand(int texnum, const char *str1, int proc, const char *str2);
@@ -389,6 +392,8 @@ public:
     void NSDSetSpriteCommand(int spnum, int texnum, const char *tag);
 
     void stopSMPEG();
+
+    void startAndloadSaveFile(int no);
     
 private:
     // ----------------------------------------
