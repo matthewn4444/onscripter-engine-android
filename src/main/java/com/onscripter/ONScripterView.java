@@ -12,6 +12,7 @@ import android.os.ParcelFileDescriptor;
 import android.provider.DocumentsContract;
 import android.util.Log;
 
+import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -75,6 +76,7 @@ public class ONScripterView extends DemoGLSurfaceView {
     }
 
     /* Called from ONScripter.h */
+    @Keep
     private static void receiveMessageFromNDK(int mode, boolean flag) {
         if (sHandler != null) {
             Message msg = new Message();
@@ -199,6 +201,7 @@ public class ONScripterView extends DemoGLSurfaceView {
     }
 
     /* Called from ONScripter.h */
+    @Keep
     protected void playVideo(char[] filepath, boolean clickToSkip, boolean shouldLoop){
         if (!mHasExit && mListener != null) {
             Uri uri = getUri(filepath);
@@ -216,6 +219,7 @@ public class ONScripterView extends DemoGLSurfaceView {
     }
 
     /* Called from ONScripter.h */
+    @Keep
     protected void receiveException(final String message, final String currentLineBuffer,
                                     final String backtrace) {
         mMainHandler.post(new Runnable() {
@@ -235,6 +239,7 @@ public class ONScripterView extends DemoGLSurfaceView {
     }
 
     /* Called from ONScripter.h */
+    @Keep
     protected void receiveReady() {
         post(new Runnable() {
             @Override
@@ -247,10 +252,12 @@ public class ONScripterView extends DemoGLSurfaceView {
     }
 
     /* Called from ONScripter.h */
+    @Keep
     protected void onLoadFile(String filename, String savePath) {
     }
 
     /* Called from ONScripter.h */
+    @Keep
     @Override
     protected void onFinish() {
         super.onFinish();
@@ -265,6 +272,7 @@ public class ONScripterView extends DemoGLSurfaceView {
     }
 
     /* Called from ONScripter.h */
+    @Keep
     protected int getFD(char[] filepath, int mode) {
         ParcelFileDescriptor pfd;
         try {
@@ -304,6 +312,7 @@ public class ONScripterView extends DemoGLSurfaceView {
     }
 
     /* Called from ONScripter.h */
+    @Keep
     protected long getStat(char[] filepath) {
         final ContentResolver resolver = getContext().getContentResolver();
         Uri uri = getUri(filepath);
@@ -337,6 +346,7 @@ public class ONScripterView extends DemoGLSurfaceView {
     }
 
     /* Called from ONScripter.h */
+    @Keep
     protected int mkdir(char[] filepath) {
         Uri uri = getUri(filepath);
         if (uri == null) {

@@ -11,6 +11,7 @@ import android.provider.DocumentsContract;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 
+import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -96,6 +97,7 @@ class DemoRenderer extends GLSurfaceView_SDL.Renderer {
 
     // Called from native code, returns 1 on success, 0 when GL context lost
     // (user put app to background)
+    @Keep
     public int swapBuffers() {
         return super.SwapBuffers() ? 1 : 0;
     }

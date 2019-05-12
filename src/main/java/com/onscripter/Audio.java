@@ -1,9 +1,10 @@
 package com.onscripter;
 
-import android.app.Activity;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+
+import androidx.annotation.Keep;
 
 
 class AudioThread {
@@ -19,6 +20,7 @@ class AudioThread {
     }
 
     /* Called from SDL_androidaudio.c */
+    @Keep
     int fillBuffer()
     {
         while (mAudio.getPlayState() == AudioTrack.PLAYSTATE_PAUSED) {
@@ -31,6 +33,7 @@ class AudioThread {
     }
 
     /* Called from SDL_androidaudio.c */
+    @Keep
     int initAudio(int rate, int channels, int encoding, int bufSize)
     {
         if( mAudio == null )
@@ -58,12 +61,14 @@ class AudioThread {
     }
 
     /* Called from SDL_androidaudio.c */
+    @Keep
     public byte[] getBuffer()
     {
         return mAudioBuffer;
     }
 
     /* Called from SDL_androidaudio.c */
+    @Keep
     public int deinitAudio()
     {
         if( mAudio != null )
@@ -77,6 +82,7 @@ class AudioThread {
     }
 
     /* Called from SDL_androidaudio.c */
+    @Keep
     public int initAudioThread()
     {
         // Make audio thread priority higher so audio thread won't get underrun
