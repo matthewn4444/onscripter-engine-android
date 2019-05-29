@@ -11,6 +11,7 @@ import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.provider.DocumentsContract;
 import android.util.Log;
+import android.view.MotionEvent;
 
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
@@ -118,6 +119,7 @@ public class ONScripterView extends DemoGLSurfaceView {
     private static UpdateHandler sHandler;
 
     private ONScripterEventListener mListener;
+    private boolean mGameReady;
     boolean mIsVideoPlaying = false;
     boolean mHasExit = false;
 
@@ -139,6 +141,15 @@ public class ONScripterView extends DemoGLSurfaceView {
     public void onResume() {
         super.onResume();
         mAudioThread.onResume();
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        // Prevent touches to occur until the game is ready
+        if (!mGameReady) {
+            return true;
+        }
+        return super.onTouchEvent(event);
     }
 
     /**
@@ -241,6 +252,7 @@ public class ONScripterView extends DemoGLSurfaceView {
     /* Called from ONScripter.h */
     @Keep
     protected void receiveReady() {
+        mGameReady = true;
         post(new Runnable() {
             @Override
             public void run() {

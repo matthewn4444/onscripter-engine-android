@@ -183,6 +183,7 @@ class DemoGLSurfaceView extends GLSurfaceView_SDL {
     }
 
     public void exitApp() {
+        mExitted = true;
         mRenderer.exitApp();
     };
 
