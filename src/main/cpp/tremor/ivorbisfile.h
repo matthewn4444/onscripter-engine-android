@@ -70,7 +70,7 @@ typedef struct OggVorbis_File {
   /* Decoding working state local storage */
   ogg_int64_t      pcm_offset;
   int              ready_state;
-  ogg_uint32_t     current_serialno;
+  long             current_serialno;
   int              current_link;
 
   ogg_int64_t      bittrack;

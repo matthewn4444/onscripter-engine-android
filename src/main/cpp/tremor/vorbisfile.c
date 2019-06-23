@@ -15,7 +15,6 @@
  last mod: $Id: vorbisfile.c,v 1.6 2003/03/30 23:40:56 xiphmont Exp $
 
  ********************************************************************/
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -218,7 +217,7 @@ static int _lookup_page_serialno(ogg_page *og, ogg_uint32_t *serialno_list, int 
    return the info of last page and alter *serialno.  */
 static ogg_int64_t _get_prev_page_serial(OggVorbis_File *vf,
                                          ogg_uint32_t *serial_list, int serial_n,
-                                         int *serialno, ogg_int64_t *granpos){
+                                         ogg_uint32_t *serialno, ogg_int64_t *granpos){
   ogg_page og={0,0,0,0};
   ogg_int64_t begin=vf->offset;
   ogg_int64_t end=begin;
@@ -226,7 +225,7 @@ static ogg_int64_t _get_prev_page_serial(OggVorbis_File *vf,
 
   ogg_int64_t prefoffset=-1;
   ogg_int64_t offset=-1;
-  ogg_uint32_t ret_serialno=-1;
+  long ret_serialno=-1;
   ogg_int64_t ret_gran=-1;
 
   while(offset==-1){
@@ -268,7 +267,7 @@ static ogg_int64_t _get_prev_page_serial(OggVorbis_File *vf,
   /* we're not interested in the page... just the serialno and granpos. */
   if(prefoffset>=0)return(prefoffset);
 
-  *serialno = ret_serialno;
+  *serialno = (ogg_uint32_t) ret_serialno;
   *granpos = ret_gran;
   return(offset);
 
@@ -288,7 +287,7 @@ static int _fetch_headers(OggVorbis_File *vf,
   ogg_packet op={0,0,0,0,0,0};
   int i,ret;
   int allbos=0;
-  
+
   if(!og_ptr){
     ogg_int64_t llret=_get_next_page(vf,&og,CHUNKSIZE);
     if(llret==OV_EREAD)return(OV_EREAD);
@@ -320,7 +319,7 @@ static int _fetch_headers(OggVorbis_File *vf,
     if(vf->ready_state<STREAMSET){
       /* we don't have a vorbis stream in this link yet, so begin
          prospective stream setup. We need a stream to get packets */
-      ogg_stream_reset_serialno(vf->os,ogg_page_serialno(og_ptr));
+      ogg_stream_reset_serialno(vf->os, ogg_page_serialno(og_ptr));
       ogg_stream_pagein(vf->os,og_ptr);
 
       if(ogg_stream_packetout(vf->os,&op) > 0 &&
@@ -431,7 +430,7 @@ static ogg_int64_t _initial_pcmoffset(OggVorbis_File *vf, vorbis_info *vi){
   ogg_int64_t accumulated=0,pos;
   long        lastblock=-1;
   int         result;
-  int         serialno = vf->os->serialno;
+  long serialno = vf->os->serialno;
 
   while(1){
     ogg_packet op={0,0,0,0,0,0};
@@ -480,7 +479,7 @@ static int _bisect_forward_serialno(OggVorbis_File *vf,
 				    ogg_int64_t searched,
 				    ogg_int64_t end,
                                     ogg_int64_t endgran,
-                                    int endserial,
+                                    ogg_uint32_t endserial,
                                     ogg_uint32_t *currentno_list,
                                     int  currentnos,
                                     long m){
@@ -491,7 +490,7 @@ static int _bisect_forward_serialno(OggVorbis_File *vf,
   ogg_int64_t next=end;
   ogg_int64_t searchgran=-1;
   ogg_int64_t ret,last;
-  int serialno = vf->os->serialno;
+  long serialno = vf->os->serialno;
 
   /* invariants:
      we have the headers and serialnos for the link beginning at 'begin'
@@ -565,10 +564,10 @@ static int _bisect_forward_serialno(OggVorbis_File *vf,
 
     /* for the time being, fetch end PCM offset the simple way */
     {
-      int testserial = serialno+1;
+      ogg_uint32_t testserial = (ogg_uint32_t) serialno+1;
       vf->offset = next;
       while(testserial != serialno){
-        testserial = serialno;
+        testserial = (ogg_uint32_t) serialno;
         vf->offset=_get_prev_page_serial(vf,currentno_list,currentnos,&testserial,&searchgran);
       }
     }
@@ -627,8 +626,8 @@ static int _make_decode_ready(OggVorbis_File *vf){
 
 static int _open_seekable2(OggVorbis_File *vf){
   ogg_int64_t dataoffset=vf->dataoffsets[0],end,endgran=-1;
-  int endserial=vf->os->serialno;
-  int serialno=vf->os->serialno;
+  ogg_uint32_t endserial=vf->os->serialno;
+  ogg_uint32_t serialno=vf->os->serialno;
 
   /* we're partially open and have a first link header state in
      storage in vf */

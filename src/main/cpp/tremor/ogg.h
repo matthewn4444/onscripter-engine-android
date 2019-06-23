@@ -164,10 +164,10 @@ extern int      ogg_stream_packetpeek(ogg_stream_state *os,ogg_packet *op);
 
 /* Ogg BITSTREAM PRIMITIVES: general ***************************/
 
-extern ogg_stream_state *ogg_stream_create(int serialno);
+extern ogg_stream_state *ogg_stream_create(long serialno);
 extern int      ogg_stream_destroy(ogg_stream_state *os);
 extern int      ogg_stream_reset(ogg_stream_state *os);
-extern int      ogg_stream_reset_serialno(ogg_stream_state *os,int serialno);
+extern int      ogg_stream_reset_serialno(ogg_stream_state *os,long serialno);
 extern int      ogg_stream_eos(ogg_stream_state *os);
 
 extern int      ogg_page_checksum_set(ogg_page *og);

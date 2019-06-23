@@ -821,7 +821,7 @@ int ogg_sync_reset(ogg_sync_state *oy){
   return OGG_SUCCESS;
 }
 
-ogg_stream_state *ogg_stream_create(int serialno){
+ogg_stream_state *ogg_stream_create(long serialno){
   ogg_stream_state *os=_ogg_calloc(1,sizeof(*os));
   os->serialno=serialno;
   os->pageno=-1;
@@ -951,7 +951,7 @@ static void _span_queued_page(ogg_stream_state *os){
 
 int ogg_stream_pagein(ogg_stream_state *os, ogg_page *og){
 
-  int serialno=ogg_page_serialno(og);
+  ogg_uint32_t serialno=ogg_page_serialno(og);
   int version=ogg_page_version(og);
 
   /* check the serial number */
@@ -1008,7 +1008,7 @@ int ogg_stream_reset(ogg_stream_state *os){
   return OGG_SUCCESS;
 }
 
-int ogg_stream_reset_serialno(ogg_stream_state *os,int serialno){
+int ogg_stream_reset_serialno(ogg_stream_state *os,long serialno){
   ogg_stream_reset(os);
   os->serialno=serialno;
   return OGG_SUCCESS;
