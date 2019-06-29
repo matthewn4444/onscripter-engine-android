@@ -254,6 +254,8 @@ protected:
     bool zenkakko_flag;
     bool pagetag_flag;
     int  windowchip_sprite_no;
+
+    bool use_parent_resources;
     
     int string_buffer_offset;
 

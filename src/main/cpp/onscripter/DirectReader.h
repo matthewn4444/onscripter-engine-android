@@ -32,7 +32,7 @@
 class DirectReader : public BaseReader
 {
 public:
-    DirectReader( const char *path=NULL, const unsigned char *key_table=NULL );
+    DirectReader( const char *path=NULL, const unsigned char *key_table=NULL, bool try_parent=false );
     ~DirectReader();
 
     int open( const char *name=NULL );
@@ -65,6 +65,7 @@ protected:
     unsigned char *read_buf;
     unsigned char *decomp_buffer;
     size_t decomp_buffer_len;
+    bool try_parent_flag;
     
     struct RegisteredCompressionType{
         RegisteredCompressionType *next;

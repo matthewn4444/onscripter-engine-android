@@ -979,6 +979,19 @@ int ONScripter::savescreenshotCommand()
     resizeSurface( screenshot_surface, surface );
 
     const char *buf = script_h.readStr();
+
+    // Get the folder path to save the image into and create it if it does not exist
+    char* pos = (char*) std::max(strrchr(buf, '\\'), strrchr(buf, '/'));
+    if (pos) {
+        // TODO should recursively create folders?
+        char c = *pos;
+        *pos = '\0';
+        if (mkdir(buf, 00755) != 0) {
+            loge(stderr, "Unable to create directory for screenshot, path='%s'", buf);
+        }
+        *pos = c;
+    }
+
     FILE *fp = fopen(buf, "wb");
     if (fp){
         SDL_RWops *rwops = SDL_RWFromFP(fp, SDL_TRUE);

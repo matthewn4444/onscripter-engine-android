@@ -213,19 +213,20 @@ public class ONScripterView extends DemoGLSurfaceView {
 
     /* Called from ONScripter.h */
     @Keep
-    protected void playVideo(char[] filepath, boolean clickToSkip, boolean shouldLoop){
+    protected void playVideo(String filepath, boolean clickToSkip, boolean shouldLoop){
         if (!mHasExit && mListener != null) {
             Uri uri = getUri(filepath);
-            if (uri == null) {
-                return;
+            if (!exists(uri)) {
+                // If able to read from parent directory, also check for videos there
+                if (!mRenderer.mBuilder.readParentAssets
+                        || !exists(uri = getUri("../" + filepath))) {
+                    Log.e(TAG, "Cannot play video because it either does not exist. File: " + uri);
+                    return;
+                }
             }
-            if (exists(uri)) {
-                mIsVideoPlaying = true;
-                mListener.videoRequested(uri, clickToSkip, shouldLoop);
-                mIsVideoPlaying = false;
-            } else {
-                Log.e(TAG, "Cannot play video because it either does not exist. File: " + uri);
-            }
+            mIsVideoPlaying = true;
+            mListener.videoRequested(uri, clickToSkip, shouldLoop);
+            mIsVideoPlaying = false;
         }
     }
 
@@ -285,14 +286,11 @@ public class ONScripterView extends DemoGLSurfaceView {
 
     /* Called from ONScripter.h */
     @Keep
-    protected int getFD(char[] filepath, int mode) {
+    protected int getFD(String filepath, int mode) {
         ParcelFileDescriptor pfd;
         try {
             final ContentResolver resolver = getContext().getContentResolver();
             Uri uri = getUri(filepath);
-            if (uri == null) {
-                return -1;
-            }
 
             boolean exists = exists(uri);
             if (mode == 0 /* Read mode */) {
@@ -325,12 +323,9 @@ public class ONScripterView extends DemoGLSurfaceView {
 
     /* Called from ONScripter.h */
     @Keep
-    protected long getStat(char[] filepath) {
+    protected long getStat(String filepath) {
         final ContentResolver resolver = getContext().getContentResolver();
         Uri uri = getUri(filepath);
-        if (uri == null) {
-            return -1;
-        }
 
         // If file scheme, simple return, usually won't run here because can do stat in C
         boolean isFileScheme = ContentResolver.SCHEME_FILE.equals(uri.getScheme());
@@ -359,11 +354,8 @@ public class ONScripterView extends DemoGLSurfaceView {
 
     /* Called from ONScripter.h */
     @Keep
-    protected int mkdir(char[] filepath) {
+    protected int mkdir(String filepath) {
         Uri uri = getUri(filepath);
-        if (uri == null) {
-            return -1;
-        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             File file = new File(DocumentsContract.getDocumentId(uri));
@@ -381,9 +373,26 @@ public class ONScripterView extends DemoGLSurfaceView {
     }
 
     private boolean createFile(@NonNull Uri uri) throws IOException {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP &&
+                ContentResolver.SCHEME_CONTENT.equals(uri.getScheme())) {
             File file = new File(DocumentsContract.getDocumentId(uri));
             Uri parentUri = DocumentsContract.buildDocumentUriUsingTree(uri, file.getParent());
+
+            // Create the parent folder if it does not exist
+            if (!exists(parentUri)) {
+                String parentParentPath = file.getParentFile().getParent();
+                if (parentParentPath != null) {
+                    Uri parentParentUri = DocumentsContract.buildDocumentUriUsingTree(uri,
+                            parentParentPath);
+                    try {
+                        DocumentsContract.createDocument(getContext().getContentResolver(),
+                                parentParentUri, DocumentsContract.Document.MIME_TYPE_DIR,
+                                file.getParentFile().getName());
+                    } catch (FileNotFoundException ignored) {
+                        return false;
+                    }
+                }
+            }
             DocumentsContract.createDocument(getContext().getContentResolver(), parentUri,
                     "application/octet-stream", file.getName());
             return true;
@@ -392,12 +401,9 @@ public class ONScripterView extends DemoGLSurfaceView {
         }
     }
 
-    @Nullable
-    private Uri getUri(@Nullable char[] filenameForC) {
-        if (filenameForC == null) {
-            return null;
-        }
-        String path = new String(filenameForC);
+    @NonNull
+    private Uri getUri(@NonNull String filename) {
+        String path = filename.replace('\\', File.separatorChar);
         if (path.startsWith(File.separator)) {
             // Absolute path
             return Uri.fromFile(new File(path));
@@ -471,6 +477,7 @@ public class ONScripterView extends DemoGLSurfaceView {
         String screenshotPath;
         boolean useHQAudio;
         boolean renderOutline;
+        boolean readParentAssets;
 
         public Builder(@NonNull Context context, @NonNull Uri gameUri) {
             this.context = context;
@@ -494,6 +501,11 @@ public class ONScripterView extends DemoGLSurfaceView {
 
         public Builder useRenderOutline() {
             renderOutline = true;
+            return this;
+        }
+
+        public Builder readParentAssets() {
+            readParentAssets = true;
             return this;
         }
 

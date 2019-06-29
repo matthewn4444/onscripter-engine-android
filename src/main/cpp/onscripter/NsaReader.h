@@ -31,7 +31,7 @@
 class NsaReader : public SarReader
 {
 public:
-    NsaReader( unsigned int nsa_offset=0, char *path=NULL, int archive_type=ARCHIVE_TYPE_NSA, const unsigned char *key_table=NULL );
+    NsaReader( unsigned int nsa_offset=0, char *path=NULL, int archive_type=ARCHIVE_TYPE_NSA, const unsigned char *key_table=NULL, bool try_parent=false );
     ~NsaReader();
 
     int open( const char *nsa_path=NULL );
@@ -45,19 +45,21 @@ public:
     int openForConvert( char *nsa_name, int archive_type=ARCHIVE_TYPE_NSA, unsigned int nsa_offset=0 );
     int writeHeader( FILE *fp, int archive_type=ARCHIVE_TYPE_NSA, int nsa_offset=0 );
     size_t putFile( FILE *fp, int no, size_t offset, size_t length, size_t original_length, int compression_type, bool modified_flag, unsigned char *buffer );
-    
+
 private:
     bool sar_flag;
     int nsa_offset;
     int archive_type;
-    int num_of_nsa_archives;
     int num_of_ns2_archives;
+    int num_of_nsa_archives;
     const char *nsa_archive_ext;
     const char *ns2_archive_ext;
     ArchiveInfo archive_info2[MAX_EXTRA_ARCHIVE];
     ArchiveInfo archive_info_ns2[MAX_NS2_ARCHIVE];
+    char path_tmp[MAX_FILE_NAME_LENGTH*2+1];
 
     size_t getFileLengthSub( ArchiveInfo *ai, const char *file_name );
+    int internalOpen( const char *nsa_path=NULL, int ns2_count_offset=0, int nsa_count_offset=-1  );
 };
 
 #endif // __NSA_READER_H__

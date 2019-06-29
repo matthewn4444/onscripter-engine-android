@@ -26,8 +26,8 @@
 #define NSA_ARCHIVE_NAME "arc"
 #define NSA_ARCHIVE_NAME2 "arc%d"
 
-NsaReader::NsaReader( unsigned int nsa_offset, char *path, int archive_type, const unsigned char *key_table )
-        :SarReader( path, key_table )
+NsaReader::NsaReader( unsigned int nsa_offset, char *path, int archive_type, const unsigned char *key_table, bool try_parent )
+        :SarReader( path, key_table, try_parent )
 {
     sar_flag = true;
     this->nsa_offset = nsa_offset;
@@ -49,7 +49,27 @@ NsaReader::~NsaReader()
 
 int NsaReader::open( const char *nsa_path )
 {
-    int i;
+    int ret = internalOpen(nsa_path);
+    if (try_parent_flag) {
+        if (ret < 0) {
+            // Did not find anything in current folder, check parent
+            num_of_nsa_archives = -1;
+        }
+        // Scan the parent folder, append the data to the archives
+        strncpy(path_tmp, "../", 3);
+        if (nsa_path) {
+            size_t length = strlen(nsa_path);
+            strncpy(path_tmp + 3, nsa_path, length + 3);
+            path_tmp[length + 3] = '\0';
+        }
+        ret = internalOpen(path_tmp, num_of_ns2_archives, num_of_nsa_archives);
+    }
+    return ret;
+}
+
+int NsaReader::internalOpen( const char *nsa_path, int ns2_count_offset, int nsa_count_offset )
+{
+    int i, j;
     bool archive_found = false;
     char archive_name[256], archive_name2[256];
 
@@ -57,7 +77,7 @@ int NsaReader::open( const char *nsa_path )
         sar_flag = false;
 
     if (archive_type & ARCHIVE_TYPE_NS2){
-        for ( i=0 ; i<MAX_NS2_ARCHIVE ; i++ ){
+        for ( i=ns2_count_offset ; i<MAX_NS2_ARCHIVE ; i++ ){
             sprintf( archive_name, "%s%02d.%s", nsa_path?nsa_path:"", i, ns2_archive_ext );
             if ( ( archive_info_ns2[i].file_handle = fopen( archive_name, "rb" ) ) == NULL ) break;
         
@@ -70,19 +90,22 @@ int NsaReader::open( const char *nsa_path )
     }
 
     if (num_of_ns2_archives ==0 && archive_type & ARCHIVE_TYPE_NSA){
-        for ( i=-1 ; i<MAX_EXTRA_ARCHIVE ; i++ ){
+        for ( i=nsa_count_offset, j = -1; i<MAX_EXTRA_ARCHIVE ; i++, j++ ){
             ArchiveInfo *ai;
-        
-            if (i == -1){
+
+            if (j == -1){
                 sprintf( archive_name, "%s%s.%s", nsa_path?nsa_path:"", NSA_ARCHIVE_NAME, nsa_archive_ext );
-                ai = &archive_info;
             }
             else{
-                sprintf( archive_name2, NSA_ARCHIVE_NAME2, i+1 );
+                sprintf( archive_name2, NSA_ARCHIVE_NAME2, j+1 );
                 sprintf( archive_name, "%s%s.%s", nsa_path?nsa_path:"", archive_name2, nsa_archive_ext );
+            }
+            if (i == -1) {
+                ai = &archive_info;
+            } else {
                 ai = &archive_info2[i];
             }
-        
+
             if ( ( ai->file_handle = fopen( archive_name, "rb" ) ) == NULL ) break;
 
             archive_found = true;
@@ -166,11 +189,11 @@ size_t NsaReader::getFileLength( const char *file_name )
     int i;
     
     if ( ( ret = DirectReader::getFileLength( file_name ) ) ) return ret;
-    
+
     for ( i=0 ; i<num_of_ns2_archives ; i++ ){
         if ( (ret = getFileLengthSub( &archive_info_ns2[i], file_name )) ) return ret;
     }
-    
+
     if ( ( ret = getFileLengthSub( &archive_info, file_name )) ) return ret;
 
     for ( i=0 ; i<num_of_nsa_archives ; i++ ){

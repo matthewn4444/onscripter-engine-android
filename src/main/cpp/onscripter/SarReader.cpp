@@ -28,8 +28,8 @@
 extern int psp_power_resume_number;
 #endif
 
-SarReader::SarReader( const char *path, const unsigned char *key_table )
-        :DirectReader( path, key_table )
+SarReader::SarReader( const char *path, const unsigned char *key_table, bool try_parent )
+        :DirectReader( path, key_table, try_parent )
 {
     root_archive_info = last_archive_info = &archive_info;
     num_of_sar_archives = 0;

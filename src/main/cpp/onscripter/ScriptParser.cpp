@@ -78,6 +78,7 @@ ScriptParser::ScriptParser()
     save_data_len = 0;
 
     render_font_outline = false;
+    use_parent_resources = false;
     page_list = NULL;
 
 #ifdef ANDROID
@@ -279,10 +280,10 @@ void ScriptParser::reset()
 
 int ScriptParser::openScript()
 {
-    script_h.cBR = new NsaReader( 0, archive_path, BaseReader::ARCHIVE_TYPE_NS2, key_table );
+    script_h.cBR = new NsaReader( 0, archive_path, BaseReader::ARCHIVE_TYPE_NS2, key_table, use_parent_resources );
     if (script_h.cBR->open( nsa_path )){
         delete script_h.cBR;
-        script_h.cBR = new DirectReader( archive_path, key_table );
+        script_h.cBR = new DirectReader( archive_path, key_table, use_parent_resources );
         script_h.cBR->open();
     }
     

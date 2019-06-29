@@ -79,6 +79,9 @@ class DemoRenderer extends GLSurfaceView_SDL.Renderer {
         if (mBuilder.renderOutline) {
             flags.add("--render-font-outline");
         }
+        if (mBuilder.readParentAssets) {
+            flags.add("--use-parent-resources");
+        }
         if (mBuilder.useHQAudio) {
             flags.add("--audio-hq");
         }

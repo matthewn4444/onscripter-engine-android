@@ -397,6 +397,11 @@ void ONScripter::renderFontOutline()
 #endif
 }
 
+void ONScripter::useParentResources()
+{
+    use_parent_resources = true;
+}
+
 void ONScripter::enableEdit()
 {
     edit_flag = true;

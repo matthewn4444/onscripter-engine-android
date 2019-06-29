@@ -125,13 +125,13 @@ public:
         }
         JavaONScripter = jniEnv->NewGlobalRef(thiz);
         JavaONScripterClass = (jclass)jniEnv->NewGlobalRef(jniEnv->GetObjectClass(JavaONScripter));
-        JavaPlayVideo = jniEnv->GetMethodID(JavaONScripterClass, "playVideo", "([CZZ)V");
+        JavaPlayVideo = jniEnv->GetMethodID(JavaONScripterClass, "playVideo", "(Ljava/lang/String;ZZ)V");
         JavaReceiveMessage = jniEnv->GetStaticMethodID(JavaONScripterClass,"receiveMessageFromNDK", "(IZ)V");
         JavaOnLoadFile = jniEnv->GetMethodID(JavaONScripterClass,"onLoadFile", "(Ljava/lang/String;Ljava/lang/String;)V");
         JavaOnFinish = jniEnv->GetMethodID(JavaONScripterClass,"onFinish", "()V");
-        JavaGetFD = jniEnv->GetMethodID(JavaONScripterClass, "getFD", "([CI)I");
-        JavaGetStat = jniEnv->GetMethodID(JavaONScripterClass, "getStat", "([C)J");
-        JavaMkdir = jniEnv->GetMethodID(JavaONScripterClass, "mkdir", "([C)I");
+        JavaGetFD = jniEnv->GetMethodID(JavaONScripterClass, "getFD", "(Ljava/lang/String;I)I");
+        JavaGetStat = jniEnv->GetMethodID(JavaONScripterClass, "getStat", "(Ljava/lang/String;)J");
+        JavaMkdir = jniEnv->GetMethodID(JavaONScripterClass, "mkdir", "(Ljava/lang/String;)I");
         JavaSendException = jniEnv->GetMethodID(JavaONScripterClass,"receiveException",
             "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
         JavaSendReady = jniEnv->GetMethodID(JavaONScripterClass, "receiveReady", "()V");
@@ -167,6 +167,7 @@ public:
     void enableButtonShortCut();
     void enableWheelDownAdvance();
     void disableRescale();
+    void useParentResources();
     void renderFontOutline();
     void enableEdit();
     void setKeyEXE(const char *path);

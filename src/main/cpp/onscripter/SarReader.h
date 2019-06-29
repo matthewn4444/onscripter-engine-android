@@ -29,7 +29,7 @@
 class SarReader : public DirectReader
 {
 public:
-    SarReader( const char *path=NULL, const unsigned char *key_table=NULL );
+    SarReader( const char *path=NULL, const unsigned char *key_table=NULL, bool try_parent=false );
     ~SarReader();
 
     int open( const char *name=NULL );

@@ -170,13 +170,9 @@ JNIEXPORT void JNICALL JAVA_EXPORT_NAME(ONScripterView_nativeLoadSaveFile) (JNIE
 void playVideoAndroid(const char *filename, bool click_flag, bool loop_flag)
 {
     JNIWrapper wrapper(ONScripter::JNI_VM);
-    jchar *jc = new jchar[strlen(filename)];
-    for (int i=0 ; i<strlen(filename) ; i++)
-        jc[i] = filename[i];
-    jcharArray jca = wrapper.env->NewCharArray(strlen(filename));
-    wrapper.env->SetCharArrayRegion(jca, 0, strlen(filename), jc);
-    wrapper.env->CallVoidMethod( ONScripter::JavaONScripter, ONScripter::JavaPlayVideo, jca, click_flag, loop_flag );
-    delete[] jc;
+    jstring jpath = wrapper.env->NewStringUTF(filename);
+    wrapper.env->CallVoidMethod( ONScripter::JavaONScripter, ONScripter::JavaPlayVideo, jpath, click_flag, loop_flag );
+    wrapper.env->DeleteLocalRef(jpath);
 }
 
 int stat_ons(const char* path, struct stat *buf)
@@ -187,15 +183,9 @@ int stat_ons(const char* path, struct stat *buf)
 
     JNIWrapper wrapper(ONScripter::JNI_VM);
     JNIEnv * jniEnv = wrapper.env;
-
-    jchar *jc = new jchar[strlen(path)];
-    for (int i=0 ; i<strlen(path) ; i++)
-        jc[i] = path[i];
-    jcharArray jca = jniEnv->NewCharArray(strlen(path));
-    jniEnv->SetCharArrayRegion(jca, 0, strlen(path), jc);
-    jlong time = jniEnv->CallLongMethod( ONScripter::JavaONScripter, ONScripter::JavaGetStat, jca );
-    jniEnv->DeleteLocalRef(jca);
-    delete[] jc;
+    jstring jpath = jniEnv->NewStringUTF(path);
+    jlong time = jniEnv->CallLongMethod( ONScripter::JavaONScripter, ONScripter::JavaGetStat, jpath );
+    jniEnv->DeleteLocalRef(jpath);
 
     if (time == -1) {
         return -1;
@@ -220,15 +210,9 @@ FILE *fopen_ons(const char *path, const char *mode)
     JNIWrapper wrapper(ONScripter::JNI_VM);
     JNIEnv * jniEnv = wrapper.env;
 
-    jchar *jc = new jchar[strlen(path)];
-    for (int i=0 ; i<strlen(path) ; i++)
-        jc[i] = path[i];
-    jcharArray jca = jniEnv->NewCharArray(strlen(path));
-    jniEnv->SetCharArrayRegion(jca, 0, strlen(path), jc);
-    int fd = jniEnv->CallIntMethod( ONScripter::JavaONScripter, ONScripter::JavaGetFD, jca, mode2 );
-    jniEnv->DeleteLocalRef(jca);
-    delete[] jc;
-
+    jstring jpath = jniEnv->NewStringUTF(path);
+    int fd = jniEnv->CallIntMethod( ONScripter::JavaONScripter, ONScripter::JavaGetFD, jpath, mode2 );
+    jniEnv->DeleteLocalRef(jpath);
     return fdopen(fd, mode);
 }
 
@@ -240,15 +224,9 @@ int mkdir_ons(const char* path, mode_t mode) {
 
     JNIWrapper wrapper(ONScripter::JNI_VM);
     JNIEnv * jniEnv = wrapper.env;
-
-    jchar *jc = new jchar[strlen(path)];
-    for (int i=0 ; i<strlen(path) ; i++)
-        jc[i] = path[i];
-    jcharArray jca = jniEnv->NewCharArray(strlen(path));
-    jniEnv->SetCharArrayRegion(jca, 0, strlen(path), jc);
-    int ret = jniEnv->CallIntMethod( ONScripter::JavaONScripter, ONScripter::JavaMkdir, jca );
-    jniEnv->DeleteLocalRef(jca);
-    delete[] jc;
+    jstring jpath = jniEnv->NewStringUTF(path);
+    int ret = jniEnv->CallIntMethod( ONScripter::JavaONScripter, ONScripter::JavaMkdir, jpath );
+    jniEnv->DeleteLocalRef(jpath);
     return ret;
 }
 }
@@ -396,6 +374,9 @@ int main( int argc, char **argv )
             }
             else if ( !strcmp( argv[0]+1, "-render-font-outline" ) ){
                 ons->renderFontOutline();
+            }
+            else if ( !strcmp( argv[0]+1, "-use-parent-resources" ) ){
+                ons->useParentResources();
             }
             else if ( !strcmp( argv[0]+1, "-edit" ) ){
                 ons->enableEdit();

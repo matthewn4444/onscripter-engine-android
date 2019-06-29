@@ -477,7 +477,7 @@ int ScriptParser::nsadirCommand()
         errorAndExit( "nsadir: not in the define section" );
 
     const char *buf = script_h.readStr();
-    
+
     if ( nsa_path ) delete[] nsa_path;
     nsa_path = new char[ strlen(buf) + 2 ];
     sprintf( nsa_path, RELATIVEPATH "%s%c", buf, DELIMITER );
@@ -495,11 +495,10 @@ int ScriptParser::nsaCommand()
     }
     
     delete script_h.cBR;
-    script_h.cBR = new NsaReader( nsa_offset, archive_path, BaseReader::ARCHIVE_TYPE_NSA|BaseReader::ARCHIVE_TYPE_NS2, key_table );
+    script_h.cBR = new NsaReader( nsa_offset, archive_path, BaseReader::ARCHIVE_TYPE_NSA|BaseReader::ARCHIVE_TYPE_NS2, key_table, use_parent_resources );
     if ( script_h.cBR->open( nsa_path ) ){
         logw( stderr, " *** failed to open nsa or ns2 archive, ignored.  ***\n");
     }
-
     return RET_CONTINUE;
 }
 
@@ -1416,7 +1415,7 @@ int ScriptParser::arcCommand()
 
     if ( strcmp( script_h.cBR->getArchiveName(), "direct" ) == 0 ){
         delete script_h.cBR;
-        script_h.cBR = new SarReader( archive_path, key_table );
+        script_h.cBR = new SarReader( archive_path, key_table, use_parent_resources );
         if ( script_h.cBR->open( buf2 ) ){
             logw( stderr, " *** failed to open archive %s, ignored.  ***\n", buf2 );
         }
