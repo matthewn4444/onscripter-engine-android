@@ -1,0 +1,3 @@
+[submodule "src/main/cpp/lua/src"]
+	path = src/main/cpp/lua/src
+	url = https://github.com/lua/lua.git
