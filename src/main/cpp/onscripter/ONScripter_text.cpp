@@ -25,7 +25,7 @@
 #include "ONScripter.h"
 
 #define IS_ROTATION_REQUIRED(x)	\
-    (ScriptDecoder::isOneByte(*x) ||                                    \
+    (decoder->getNumBytes(*x) == 1 ||                                    \
      (*(x) == (char)0x81 && *((x)+1) == (char)0x50) ||                  \
      (*(x) == (char)0x81 && *((x)+1) == (char)0x51) ||                  \
      (*(x) == (char)0x81 && *((x)+1) >= 0x5b && *((x)+1) <= 0x5d) ||    \
@@ -70,8 +70,6 @@ void ONScripter::shiftHalfPixelY(SDL_Surface *surface)
 
 void ONScripter::drawGlyph( SDL_Surface *dst_surface, FontInfo *info, SDL_Color &color, char* text, int xy[2], AnimationInfo *cache_info, SDL_Rect *clip, SDL_Rect &dst_rect, ScriptDecoder* decoder )
 {
-    unsigned index = ((unsigned char*)text)[0];
-    index = index << 8 | ((unsigned char*)text)[1];
     unsigned short unicode = decoder->convertNextChar(text);
 
     int minx, maxx, miny, maxy, advanced;
@@ -85,7 +83,7 @@ void ONScripter::drawGlyph( SDL_Surface *dst_surface, FontInfo *info, SDL_Color 
     //printf("min %d %d %d %d %d %d\n", minx, maxx, miny, maxy, advanced,TTF_FontAscent((TTF_Font*)info->ttf_font[0])  );
 
     // Use the glyth's advance for non-Japanese characters
-    if (!ScriptDecoder::isOneByte(text[0]) && decoder->isMonospaced()) {
+    if (decoder->getNumBytes(text[0]) > 1 && decoder->isMonospaced()) {
         info->addMonospacedCharacterAdvance();
     } else {
         info->addProportionalCharacterAdvance(advanced);
@@ -334,7 +332,7 @@ void ONScripter::drawString( const char *str, uchar3 color, FontInfo *info, bool
         }
 #endif
         if (*str) {
-            if (ScriptDecoder::isOneByte(*str)) {
+            if (decoder->getNumBytes(*str) == 1) {
                 if (!pack_hankaku && (*str == 0x0a || (*str == '\\' && info->is_newline_accepted))){
                     if (single_line) break;
                     info->newLine();
@@ -453,7 +451,7 @@ void ONScripter::restoreTextBuffer(SDL_Surface *surface)
                 continue;
             }
 #endif
-            if (!ScriptDecoder::isOneByte(out_text[0])) {
+            if (script_h.decoder->getNumBytes(out_text[0]) > 1) {
                 out_text[1] = current_page->text[i+1];
                 if (script_h.decoder->getNumBytes(out_text[0]) == 3) {
                     out_text[2] = current_page->text[++i];
@@ -837,7 +835,7 @@ bool ONScripter::checkLineBreak(const char *buf, FontInfo *fi)
         int i = 2;
         while (!fi->isEndOfLine(i)){
             if      ( buf2[i+2] == 0x0a || buf2[i+2] == 0 ) break;
-            else if ( ScriptDecoder::isOneByte(buf2[i+2]) ) buf2++;
+            else if ( script_h.decoder->getNumBytes(buf2[i+2]) == 1 ) buf2++;
             else if ( isStartKinsoku( buf2+i+2 ) ) i += 2;
             else break;
         }
@@ -851,7 +849,7 @@ bool ONScripter::checkLineBreak(const char *buf, FontInfo *fi)
         int i = 2;
         while (!fi->isEndOfLine(i)){
             if      ( buf2[i+2] == 0x0a || buf2[i+2] == 0 ) break;
-            else if ( ScriptDecoder::isOneByte(buf2[i+2]) ) buf2++;
+            else if ( script_h.decoder->getNumBytes(buf2[i+2]) == 1 ) buf2++;
             else if ( isEndKinsoku( buf2+i ) ) i += 2;
             else break;
         }
@@ -953,7 +951,7 @@ bool ONScripter::processText()
     
     char ch = script_h.getStringBuffer()[string_buffer_offset];
 
-    if ( !ScriptDecoder::isOneByte(ch) ){
+    if ( script_h.decoder->getNumBytes(ch) > 1){
         /* ---------------------------------------- */
         /* Kinsoku process */
         if ( checkLineBreak( script_h.getStringBuffer() + string_buffer_offset, &sentence_font ) ){

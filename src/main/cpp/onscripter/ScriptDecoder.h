@@ -103,4 +103,25 @@ private:
     static const char* name;
 };
 
+class UTF7Decoder : public JapaneseDecoder {
+public:
+    static int UTF7_ERROR;
+
+    virtual unsigned short convertNextChar(char* buffer);
+    virtual bool canConvertNextChar(char* buffer, int* outNumBytes);
+    virtual bool isMonospaced();
+
+    virtual inline int getNumBytes(char c) {
+        return getByteLength(c);
+    }
+
+    virtual inline const char* getName() {
+        return name;
+    }
+
+private:
+    static int getByteLength(char c);
+    static const char* name;
+};
+
 #endif //__LANGUAGE_DECODER_H__

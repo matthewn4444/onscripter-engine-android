@@ -47,9 +47,11 @@ ScriptDecoder* ScriptDecoder::detectAndAllocateScriptDecoder(char* buffer, size_
                                 , new ChineseDecoder()
 #endif
                                 };
-
     size_t numDecoders = sizeof(decoders) / sizeof(decoders[0]);
     int* langCounter = new int[numDecoders]();
+    for (size_t i = 0; i < numDecoders; i++) {
+        langCounter[i] = 0;
+    }
     ScriptDecoder* foundDecoder = 0;
     int lineNum = 1;
     size_t i = 0;
@@ -74,8 +76,7 @@ ScriptDecoder* ScriptDecoder::detectAndAllocateScriptDecoder(char* buffer, size_
 
         char c = buffer[i];
         if (c == '`') {
-            // This says that the text is guarenteed to be English/UTF8
-            foundDecoder = new UTF8Decoder();
+            // This says that the text is guaranteed to be English/UTF8 or UTF7, test again
             break;
         } else if (c != ';' && c != '*') {
             // We need to detect Asian language
@@ -113,7 +114,7 @@ ScriptDecoder* ScriptDecoder::detectAndAllocateScriptDecoder(char* buffer, size_
                         // sure that if it is Chinese it is overwhelmingly Chinese. Therefore to be chosen
                         // as Chinese, Korean must be lower than 80% of Chinese count. Korean/Chinese < 80%
                         if (langCounter[j] >= TOTAL_COUNT_FINISHED
-                            && (j != 2 || ((j == 2 && langCounter[1] * 100 / langCounter[2] < 80)))) {
+                            && (j != 2 || ((langCounter[1] * 100 / langCounter[2] < 80)))) {
 #else
                         if (langCounter[j] >= TOTAL_COUNT_FINISHED) {
 #endif
@@ -130,13 +131,75 @@ ScriptDecoder* ScriptDecoder::detectAndAllocateScriptDecoder(char* buffer, size_
         while(i < size && buffer[i] != '\n') i++;
         if (++i >= size) break;
     }
-
     delete[] langCounter;
 
-    for (size_t i = 0; i < numDecoders; i++) {
+    for (i = 0; i < numDecoders; i++) {
         // Delete everything except found decoder
         if (foundDecoder != decoders[i]) {
             delete decoders[i];
+        }
+    }
+
+    // Test UTF8 or 7
+    // TODO refactor above and this
+    if (!foundDecoder) {
+        lineNum = 1;
+        i = 0;
+
+        ScriptDecoder *decoders2[] = {new UTF8Decoder(), new UTF7Decoder()};
+        int counter[2] = {0, 0};
+
+        // Read line routine
+        while (i < size && !foundDecoder) {
+            // Skip the spaces at the beginning of each line
+            while (i < size && buffer[i] == ' ') i++;
+            if (i >= size) break;
+
+            // Skip square brackets if they exist
+            if (buffer[i] == '[') {
+                do i++; while (i < size && buffer[i] != ']' && buffer[i] != '\n');
+                if (++i >= size) break;
+
+                // Incorrect format, skip this line
+                if (buffer[i] == '\n') {
+                    lineNum++;
+                    continue;
+                }
+            }
+
+            char c = buffer[i];
+            if (c == '`') {
+                // Get line length
+                char *start = buffer + i;
+                char *ptr = start;
+                while (*ptr != '\n' && *ptr != '\0') ptr++;
+                size_t lineLength = ptr - start;
+
+                if (*ptr == '\0' || !lineLength) break;
+                int k = 0, outNumBytes = 0;
+                for (int j = 0; j < 2; j++) {
+                    while (k < lineLength && !foundDecoder) {
+                        if (!decoders2[j]->canConvertNextChar(buffer + k + i, &outNumBytes)) {
+                            break;
+                        }
+                        k += outNumBytes;
+
+                        // Successfully read the entire line
+                        if (k == lineLength) {
+                            counter[j]++;
+
+                            if (counter[j] >= TOTAL_COUNT_FINISHED) {
+                                foundDecoder = decoders2[j];
+                            }
+                        }
+                    }
+                }
+            }
+            lineNum++;
+
+            // Skip to the next line
+            while (i < size && buffer[i] != '\n') i++;
+            if (++i >= size) break;
         }
     }
     return foundDecoder;
@@ -292,14 +355,15 @@ int UTF8Decoder::getByteLength(char c)
     else if ((c & 0xE0) == 0xC0) {
         return 2;
     }
-    // 3 Bytes (2048 to 55295 and 57344 to 65535)
-    else if ((c & 0xF0) == 0xE0) {
-        return 3;
-    }
-    // 4 Bytes (65536 to 1114111)
-    else if ((c & 0xF8) == 0xF0) {
-        return 4;
-    }
+    // TODO if a game does use 3+ bytes then reenable this and have input to choose utf7 or 8
+//    // 3 Bytes (2048 to 55295 and 57344 to 65535)
+//    else if ((c & 0xF0) == 0xE0) {
+//        return 3;
+//    }
+//    // 4 Bytes (65536 to 1114111)
+//    else if ((c & 0xF8) == 0xF0) {
+//        return 4;
+//    }
     return UTF8_ERROR;
 }
 
@@ -323,3 +387,36 @@ bool UTF8Decoder::isMonospaced()
 {
     return false;
 }
+
+/*
+ *  UTF7Decoder
+ */
+const char* UTF7Decoder::name = "UTF7";
+int UTF7Decoder::UTF7_ERROR = -1;
+
+int UTF7Decoder::getByteLength(char c)
+{
+//    _log("c: %c | i: 0x%x", c, c & 0xff);
+    // TODO if there is a "+-" then implement it
+    return 1;
+}
+
+unsigned short UTF7Decoder::convertNextChar(char* buffer)
+{
+    // TODO if byte length is larger using +- fix this class
+    return buffer[0] & 0xFF;
+}
+
+bool UTF7Decoder::canConvertNextChar(char* buffer, int* outNumBytes)
+{
+    int length = getByteLength(*buffer);
+    if (length == UTF7_ERROR) return false;
+    *outNumBytes = length;
+    return true;
+}
+
+bool UTF7Decoder::isMonospaced()
+{
+    return false;
+}
+
