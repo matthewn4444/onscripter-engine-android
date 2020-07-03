@@ -901,6 +901,7 @@ bool ONScripter::processText()
         // Check next line for English text and see if it is lowercase then skip new line
         char* next = script_h.getNext() + 1;
         if (next[0] == '`') {       // Using 1 Byte English text
+            sentence_font.newLine();
             if (next[1] == ' ') {
                 // See if the first non-spaced character is lowercase, if it is then skip new line
                 int i = 1;
