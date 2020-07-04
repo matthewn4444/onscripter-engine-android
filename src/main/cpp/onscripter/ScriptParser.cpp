@@ -51,6 +51,7 @@ const char* ScriptParser::DEFAULT_SAVE_ITEM_NAME = NULL;
 
 ScriptParser::ScriptParser()
 {
+    globalon_flag = false;
     debug_level = 0;
     srand( time(NULL) );
     rand();
