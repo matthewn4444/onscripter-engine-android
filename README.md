@@ -237,7 +237,7 @@ Most of the features are specified in [ONScripterView.java](https://github.com/m
 
 ## License
 Copyright (C) 2019 Matthew Ng
-Licensed under the Apache license
+Licensed under the GPL 2.
 
 onscripter, bzip, freetype, jpeg, libmad, lua, png, sdl, sdl_image, sdl_mixer, sdl_ttf, and tremor are distributed on theirs own license.
 
