@@ -1,26 +1,19 @@
-apply plugin: 'com.android.library'
-
-buildscript {
-    repositories {
-        jcenter()
-        google()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:3.3.2'
-    }
+plugins {
+    id 'com.android.library'
 }
 
 android {
-    compileSdkVersion 28
+    namespace 'com.onscripter'
+
+    compileSdk 33
+
     defaultConfig {
-        minSdkVersion 14
-        targetSdkVersion 28
-        versionCode 1
-        versionName "1.0"
+        minSdk 21
+        targetSdk 33
 
         externalNativeBuild {
             cmake {
-                cppFlags "-std=c++14"
+                cppFlags "-std=c++17"
                 arguments "-DANDROID_ARM_NEON=TRUE"
             }
             ndk {
@@ -28,6 +21,7 @@ android {
             }
         }
     }
+
     externalNativeBuild {
         cmake {
             path "CMakeLists.txt"
@@ -41,5 +35,5 @@ android {
 }
 
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.1.0-alpha05'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
 }
